@@ -7,7 +7,6 @@ void TaskReadDigitalInput(void *)
 
   while(true)
   {
-    // Odczyt stanów przycisków
     for(int i = 0; i < NO_BUTTONS; i++)
     {
       // Odczyt stanu przycisku i
