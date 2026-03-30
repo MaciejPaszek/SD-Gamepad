@@ -1,25 +1,42 @@
 void TaskBluetooth(void *)
 {
-  bool buttonState[NO_BUTTONS] = {false};
-  int analogVal[NO_ANALOGS] = {0};
-
   ButtonMessage buttonMessage;
   AnalogMessage analogMessage;
 
   while(true)
   {
-    if (bleGamepad.isConnected())
+
+    if( xQueue != NULL )
     {
-         bleGamepad.press(BUTTON_5);
-         bleGamepad.sendReport();
-         vTaskDelay(500 / portTICK_PERIOD_MS);
+      if( xQueueReceive( xQueue, (void *)&buttonMessage, 0 ) == pdPASS )
+      {
+        Serial.println(buttonMessage.buttonID);
 
-         bleGamepad.release(BUTTON_5);
-         bleGamepad.sendReport();
-         vTaskDelay(500 / portTICK_PERIOD_MS);
+        if (bleGamepad.isConnected())
+        {
+          if(buttonMessage.buttonState == true)
+          {
+            bleGamepad.press(buttonMessage.buttonID);
+          }
+          else
+          {
+            bleGamepad.release(buttonMessage.buttonID);
+          }
+
+          bleGamepad.sendReport();
+        }
+      }
     }
-    
-    vTaskDelay(500 / portTICK_PERIOD_MS);
 
+    if( xQueueAnalog != NULL )
+    {
+      if( xQueueReceive( xQueueAnalog, (void *)&analogMessage, 0 ) == pdPASS )
+      {
+        // Zmień stan przycisku
+        Serial.println(analogMessage.analogVal);
+      }
+    }
+
+    vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }

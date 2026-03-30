@@ -51,7 +51,7 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 //--------------------------------------------------
 
 // Kontroluj, które zadania należy utworzyć
-#define CREATE_TASK_SERIAL                1
+#define CREATE_TASK_SERIAL                0
 #define CREATE_TASK_BLUETOOTH             1
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
