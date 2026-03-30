@@ -2,13 +2,14 @@ void TaskSerial(void *)
 {
   bool buttonState[NO_BUTTONS] = {false};
   int analogVal[NO_ANALOGS] = {0};
+  bool received = false;
 
   ButtonMessage buttonMessage;
   AnalogMessage analogMessage;
 
   while(true)
   {
-    bool received = false;
+    received = false;
 
     if( xQueue != NULL )
     {
@@ -34,28 +35,23 @@ void TaskSerial(void *)
 
     if(received == true)
     {
-      printGamepadState(buttonState, analogVal);
+      // Lista wszystkich wejść cyfrowych
+      for(int i = 0; i < NO_BUTTONS; i++)
+      {
+        Serial.print(buttonState[i]);
+      }
+
+      // Lista wszystkich wejść analogowych
+      for(int i = 0; i < NO_ANALOGS; i++)
+      {
+        Serial.print(" ");
+        Serial.print(analogVal[i]);
+      }
+
+      // Nowa linia
+      Serial.println("");
     }
 
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
-}
-
-void printGamepadState(bool * buttonState, int * analogVal)
-{
-  // Lista wszystkich wejść cyfrowych
-  for(int i = 0; i < NO_BUTTONS; i++)
-  {
-    Serial.print(buttonState[i]);
-  }
-
-  // Lista wszystkich wejść analogowych
-  for(int i = 0; i < NO_ANALOGS; i++)
-  {
-    Serial.print(" ");
-    Serial.print(analogVal[i]);
-  }
-
-  // Nowa linia
-  Serial.println("");
 }

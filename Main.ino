@@ -1,9 +1,9 @@
 // https://github.com/lemmingDev/ESP32-BLE-Gamepad
 // https://github.com/h2zero/NimBLE-Arduino
 //#include <Arduino.h>
-////#include <BleGamepad.h>
+#include <BleGamepad.h>
 
-//BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
+BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 
 //--------------------------------------------------
 // Wejścia Cyfrowe
@@ -52,7 +52,7 @@
 
 // Kontroluj, które zadania należy utworzyć
 #define CREATE_TASK_SERIAL                1
-#define CREATE_TASK_BLUETOOTH             0
+#define CREATE_TASK_BLUETOOTH             1
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
 #define CREATE_TASK_READ_GYRO             0
@@ -138,11 +138,12 @@ void setup()
   
   Serial.println("SD Gamepad startup.");
 
-  // Bluetooth gamepad
-  // BleGamepadConfiguration bleGamepadConfig;
-  // bleGamepadConfig.setAutoReport(false); // This is true by default
-  // bleGamepadConfig.setButtonCount(NO_BUTTONS);
-  // bleGamepad.begin(&bleGamepadConfig);
+  //Bluetooth gamepad
+  //BleGamepadConfiguration bleGamepadConfig;
+  //bleGamepadConfig.setAutoReport(false); // This is true by default
+  //bleGamepadConfig.setButtonCount(NO_BUTTONS);
+  //bleGamepad.begin(&bleGamepadConfig);
+  bleGamepad.begin();
 
   // Tryb wejść binarnych z rezystorem podciągającym do 3.3 V
   for(int i = 0; i < NO_BUTTONS; i++)
@@ -176,7 +177,7 @@ void setup()
     xTaskCreate(
       TaskSerial,             // Funkcja realizowana przez zadanie
       "Task Serial",          // Nazwa zadania
-      1024,                   // Rozmiar stosu zadania
+      4096,                   // Rozmiar stosu zadania
       NULL,                   // Parametry funkcji
       PRIORITY_TASK_SERIAL,   // Priorytet zadania
       NULL);                  // Uchwyt do zadania
@@ -188,7 +189,7 @@ void setup()
     xTaskCreate(
       TaskBluetooth,             // Funkcja realizowana przez zadanie
       "Task Bluetooth",          // Nazwa zadania
-      1024,                   // Rozmiar stosu zadania
+      4096,                   // Rozmiar stosu zadania
       NULL,                   // Parametry funkcji
       PRIORITY_TASK_BLUETOOTH,   // Priorytet zadania
       NULL);                  // Uchwyt do zadania
@@ -221,8 +222,8 @@ void setup()
 
 void loop()
 {
-  //if (bleGamepad.isConnected())
-  //{
+  if (bleGamepad.isConnected())
+  {
 
-  //}
+  }
 }
