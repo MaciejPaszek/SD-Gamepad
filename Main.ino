@@ -1,7 +1,8 @@
 // https://github.com/lemmingDev/ESP32-BLE-Gamepad
 // https://github.com/h2zero/NimBLE-Arduino
-//#include <Arduino.h>
+
 #include <BleGamepad.h>
+#include <Wire.h>
 
 BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 

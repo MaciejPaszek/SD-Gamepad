@@ -30,10 +30,29 @@ void TaskBluetooth(void *)
 
     if( xQueueAnalog != NULL )
     {
-      if( xQueueReceive( xQueueAnalog, (void *)&analogMessage, 0 ) == pdPASS )
+      while( xQueueReceive( xQueueAnalog, (void *)&analogMessage, 0 ) == pdPASS )
       {
         // Zmień stan przycisku
         Serial.println(analogMessage.analogVal);
+
+        if(analogMessage.analogID == 0)
+        {
+          if (bleGamepad.isConnected())
+          {
+            bleGamepad.setX(analogMessage.analogVal);
+            bleGamepad.sendReport();
+          }
+        }
+
+        if(analogMessage.analogID == 1)
+        {
+          if (bleGamepad.isConnected())
+          {
+            bleGamepad.setY(analogMessage.analogVal);
+            bleGamepad.sendReport();
+          }
+        }
+
       }
     }
 
