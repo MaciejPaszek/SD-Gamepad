@@ -1,3 +1,5 @@
+#include <Adafruit_MPU6050.h>
+
 // https://github.com/lemmingDev/ESP32-BLE-Gamepad
 // https://github.com/h2zero/NimBLE-Arduino
 
@@ -5,6 +7,7 @@
 #include <Wire.h>
 
 BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
+Adafruit_MPU6050 Mpu;
 
 //--------------------------------------------------
 // Wejścia Cyfrowe
@@ -53,10 +56,10 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 
 // Kontroluj, które zadania należy utworzyć
 #define CREATE_TASK_SERIAL                0
-#define CREATE_TASK_BLUETOOTH             1
-#define CREATE_TASK_READ_DIGITAL_INPUT    1
-#define CREATE_TASK_READ_ANALOG_INPUT     1
-#define CREATE_TASK_READ_GYRO             0
+#define CREATE_TASK_BLUETOOTH             0
+#define CREATE_TASK_READ_DIGITAL_INPUT    0
+#define CREATE_TASK_READ_ANALOG_INPUT     0
+#define CREATE_TASK_READ_GYRO             1
 
 // Priorytety zadań
 #define PRIORITY_TASK_SERIAL              2
@@ -64,7 +67,6 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define PRIORITY_TASK_READ_DIGITAL_INPUT  3
 #define PRIORITY_TASK_READ_ANALOG_INPUT   4
 #define PRIORITY_TASK_READ_GYRO           5
-
 //--------------------------------------------------
 // Stałe statyczne
 //--------------------------------------------------
@@ -136,15 +138,28 @@ void setup()
 {
   // Ustalenie prędkości transmisji szeregowej
   Serial.begin(115200);
-  
   Serial.println("SD Gamepad startup.");
 
+  if(!Mpu.begin())
+  {
+    Serial.println("MPU kaputt");
+  }
+  else
+  {
+    Serial.println("MPU gitgud");
+  }
+
+  Mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  Mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  
   //Bluetooth gamepad
-  //BleGamepadConfiguration bleGamepadConfig;
+  BleGamepadConfiguration bleGamepadConfig;
+  bleGamepadConfig.setSimulationMin(0);
+  bleGamepadConfig.setSimulationMax(4095);
   //bleGamepadConfig.setAutoReport(false); // This is true by default
   //bleGamepadConfig.setButtonCount(NO_BUTTONS);
-  //bleGamepad.begin(&bleGamepadConfig);
-  bleGamepad.begin();
+  bleGamepad.begin(&bleGamepadConfig);
+  //bleGamepad.begin();
 
   // Tryb wejść binarnych z rezystorem podciągającym do 3.3 V
   for(int i = 0; i < NO_BUTTONS; i++)
@@ -218,6 +233,17 @@ void setup()
       NULL,
       PRIORITY_TASK_READ_ANALOG_INPUT,
       NULL);
+  }
+
+  if(CREATE_TASK_READ_GYRO)
+  {
+    xTaskCreate(
+      TaskReadGyro,             // Funkcja realizowana przez zadanie
+      "Task Read Gyro",          // Nazwa zadania
+      4096,                   // Rozmiar stosu zadania
+      NULL,                   // Parametry funkcji
+      PRIORITY_TASK_READ_GYRO,   // Priorytet zadania
+      NULL);                  // Uchwyt do zadania
   }
 }
 
