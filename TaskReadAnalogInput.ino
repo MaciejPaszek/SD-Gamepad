@@ -28,6 +28,6 @@ void TaskReadAnalogInput(void *)
       analogPrevVal[i] = analogVal[i];
     }
     
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }

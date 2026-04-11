@@ -1,17 +1,17 @@
 void TaskBluetooth(void *)
 {
+  int AnalogValues[NO_ANALOGS] = {0}; 
+
   ButtonMessage buttonMessage;
   AnalogMessage analogMessage;
 
   while(true)
   {
 
-    if( xQueue != NULL )
+    if( xQueueDigital != NULL )
     {
-      if( xQueueReceive( xQueue, (void *)&buttonMessage, 0 ) == pdPASS )
+      if( xQueueReceive( xQueueDigital, (void *)&buttonMessage, 0 ) == pdPASS )
       {
-        Serial.println(buttonMessage.buttonID);
-
         if (bleGamepad.isConnected())
         {
           if(buttonMessage.buttonState == true)
@@ -22,8 +22,6 @@ void TaskBluetooth(void *)
           {
             bleGamepad.release(buttonMessage.buttonID);
           }
-
-          bleGamepad.sendReport();
         }
       }
     }
@@ -32,30 +30,18 @@ void TaskBluetooth(void *)
     {
       while( xQueueReceive( xQueueAnalog, (void *)&analogMessage, 0 ) == pdPASS )
       {
-        // Zmień stan przycisku
-        Serial.println(analogMessage.analogVal);
-
-        if(analogMessage.analogID == 0)
+        if(analogMessage.analogID >= 0 && analogMessage.analogID < NO_ANALOGS)
         {
-          if (bleGamepad.isConnected())
-          {
-            bleGamepad.setX(analogMessage.analogVal);
-            bleGamepad.sendReport();
-          }
+          AnalogValues[analogMessage.analogID] = analogMessage.analogVal;
         }
-
-        if(analogMessage.analogID == 1)
-        {
-          if (bleGamepad.isConnected())
-          {
-            bleGamepad.setY(analogMessage.analogVal);
-            bleGamepad.sendReport();
-          }
-        }
-
       }
     }
+  
+    // Wyślij stan gamepada
 
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    bleGamepad.setAxes(AnalogValues[0], AnalogValues[1], AnalogValues[2], AnalogValues[3], AnalogValues[4], AnalogValues[5]);
+    bleGamepad.sendReport();
+
+    vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }

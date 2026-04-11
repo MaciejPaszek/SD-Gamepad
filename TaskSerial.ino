@@ -11,9 +11,9 @@ void TaskSerial(void *)
   {
     received = false;
 
-    if( xQueue != NULL )
+    if( xQueueDigital != NULL )
     {
-        if( xQueueReceive( xQueue, (void *)&buttonMessage, 0 ) == pdPASS )
+      if( xQueueReceive( xQueueDigital, (void *)&buttonMessage, 0 ) == pdPASS )
         {
           // Zmień stan przycisku
           buttonState[buttonMessage.buttonID] = buttonMessage.buttonState;
@@ -52,6 +52,6 @@ void TaskSerial(void *)
       Serial.println("");
     }
 
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }

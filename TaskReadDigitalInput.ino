@@ -16,18 +16,18 @@ void TaskReadDigitalInput(void *)
       if(buttonState[i] != buttonPrevState[i])
       {
         // Przygotuj komunikat do kolejki o zmianie stanu przycisku
-        buttonMessage.buttonID = i;
+        buttonMessage.buttonID = i + 1; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
         buttonMessage.buttonState = buttonState[i];
 
-        if(xQueueSend( xQueue, ( void * ) &buttonMessage, 10 ) != pdTRUE)
+        if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
         {
-          Serial.println("Queue is full.");
+          Serial.println("xQueueDigital is full.");
         }
       }
 
       buttonPrevState[i] = buttonState[i];
     }
     
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
