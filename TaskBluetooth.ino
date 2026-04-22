@@ -10,7 +10,7 @@ void TaskBluetooth(void *)
 
     if( xQueueDigital != NULL )
     {
-      if( xQueueReceive( xQueueDigital, (void *)&buttonMessage, 0 ) == pdPASS )
+      while( xQueueReceive( xQueueDigital, (void *)&buttonMessage, 0 ) == pdPASS )
       {
         if (bleGamepad.isConnected())
         {
