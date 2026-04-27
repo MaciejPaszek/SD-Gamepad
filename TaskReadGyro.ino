@@ -1,21 +1,23 @@
+#include <mpu6050.h>
+#include <stdio.h>
+
 void TaskReadGyro(void *)
 {
-  //sensors_event_t a, g, temp;
+  char buffer[200];
+  wakeSensor(0x68);
+  float rawGX, rawGY, rawGZ; // initialise raw gyroscope variables
+  float rawAX, rawAY, rawAZ; // initialise raw accelerometer variables
 
   Serial.println("Start TaskReadGyro()");
   while(true)
   {
-    Serial.println("TaskReadGyro()");
+    //Serial.println("TaskReadGyro()");
+    readGyroData(0x68, rawGX, rawGY, rawGZ); // pass MPU6050 address and gyroscope values are written to 3 provided variables
+    readAccelData(0x68, rawAX, rawAY, rawAZ); // pass MPU6050 address and accelerometer values are written to 3 provided variables
 
-    //Mpu.getEvent(&a, &g, &temp);
+    sprintf(buffer, "%10.0f %10.0f %10.0f | %10.0f %10.0f %10.0f", rawGX, rawGY, rawGZ, rawAX, rawAY, rawAZ);
+    Serial.println(buffer);
 
-    //Serial.print(a.acceleration.x);
-    //Serial.print(" ");
-    //Serial.print(a.acceleration.y);
-    //Serial.print(" ");
-    //Serial.print(a.acceleration.z);
-    //Serial.println();
-
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }

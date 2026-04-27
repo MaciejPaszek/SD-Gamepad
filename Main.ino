@@ -12,20 +12,20 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 
 #define NO_BUTTONS      14  // Liczba wejść cyfrowych
 
-#define BUTTON_START    39  // Przycisk Start   (VN = GPIO 39)
-#define BUTTON_SELECT   36  // Przycisk Wybierz (VP = GPIO 36)
-#define BUTTON_X        17  // Przycisk X
-#define BUTTON_Y        18  // Przycisk Y
-#define BUTTON_A        19  // Przycisk A
-#define BUTTON_B         5  // Przycisk B
-#define BUTTON_DPAD_L   16  // Przycisk kierunkowy lewy
-#define BUTTON_DPAD_R    0  // Przycisk kierunkowy prawy
+#define BUTTON_START     5  // Przycisk Start
+#define BUTTON_SELECT   34  // Przycisk Wybierz
+#define BUTTON_X        35  // Przycisk X
+#define BUTTON_Y        32  // Przycisk Y
+#define BUTTON_A        33  // Przycisk A
+#define BUTTON_B        25  // Przycisk B
+#define BUTTON_DPAD_L   17  // Przycisk kierunkowy lewy
+#define BUTTON_DPAD_R   16  // Przycisk kierunkowy prawy
 #define BUTTON_DPAD_U    4  // Przycisk kierunkowy górny
-#define BUTTON_DPAD_D    2  // Przycisk kierunkowy dolny
-#define BUTTON_LB       14  // Przycisk zderzak lewy
-#define BUTTON_RB       12  // Przycisk zderzak prawy
-#define BUTTON_LS       27  // Przycisk gałki analogowej lewej
-#define BUTTON_RS       15  // Przycisk gałki analogowej prawej
+#define BUTTON_DPAD_D    0  // Przycisk kierunkowy dolny
+#define BUTTON_LB       23  // Przycisk zderzak lewy
+#define BUTTON_RB       18  // Przycisk zderzak prawy
+#define BUTTON_LS       14  // Przycisk gałki analogowej lewej
+#define BUTTON_RS       13  // Przycisk gałki analogowej prawej
  
 //--------------------------------------------------
 // Wejścia Analogowe
@@ -33,25 +33,25 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 
 #define NO_ANALOGS       6  // Liczba wejść analogowych
 
-#define ANALOG_LX       34  // Gałka lewa oś X
-#define ANALOG_LY       35  // Gałka lewa oś Y
-#define ANALOG_RX       32  // Gałka prawa oś X
-#define ANALOG_RY       33  // Gałka prawa oś Y
-#define ANALOG_LT       25  // Spust lewy
-#define ANALOG_RT       26  // Spust prawy
+#define ANALOG_LX       26  // Gałka lewa oś X
+#define ANALOG_LY       27  // Gałka lewa oś Y
+#define ANALOG_RX        2  // Gałka prawa oś X
+#define ANALOG_RY       15  // Gałka prawa oś Y
+#define ANALOG_LT       36  // Spust lewy
+#define ANALOG_RT       39  // Spust prawy
 
 //--------------------------------------------------
 // Żyroskop
 //--------------------------------------------------
 
 #define SCL             22  // Zegar I2C
-#define SDA             23  // Dane I2C
+#define SDA             19  // Dane I2C
 
 //--------------------------------------------------
 // Silnik
 //--------------------------------------------------
 
-#define MOT             13  // Zegar I2C
+#define MOT             12  // Zegar I2C
 
 //--------------------------------------------------
 // Zadania
@@ -63,6 +63,7 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
 #define CREATE_TASK_READ_GYRO             0
+#define CREATE_TASK_READ_MOTOR            0
 
 // Priorytety zadań
 #define PRIORITY_TASK_BLUETOOTH           1
@@ -70,6 +71,7 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define PRIORITY_TASK_READ_DIGITAL_INPUT  3
 #define PRIORITY_TASK_READ_ANALOG_INPUT   4
 #define PRIORITY_TASK_READ_GYRO           5
+#define PRIORITY_TASK_MOTOR               6
 
 //--------------------------------------------------
 // Stałe statyczne
