@@ -51,7 +51,7 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Silnik
 //--------------------------------------------------
 
-#define MOT             12  // Zegar I2C
+#define MOT             12
 
 //--------------------------------------------------
 // Zadania
@@ -63,7 +63,7 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
 #define CREATE_TASK_READ_GYRO             0
-#define CREATE_TASK_READ_MOTOR            0
+#define CREATE_TASK_MOTOR                 1
 
 // Priorytety zadań
 #define PRIORITY_TASK_BLUETOOTH           1
@@ -154,7 +154,7 @@ void setup()
 
   bleGamepadConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD); // CONTROLLER_TYPE_JOYSTICK, CONTROLLER_TYPE_GAMEPAD (DEFAULT), CONTROLLER_TYPE_MULTI_AXIS
   bleGamepadConfig.setButtonCount(NO_BUTTONS);
-  bleGamepadConfig.setHatSwitchCount(0);
+  bleGamepadConfig.setHatSwitchCount(1);
   //bleGamepadConfig.setVid(0xe502);
   //bleGamepadConfig.setPid(0xabcd);
   // Some non-Windows operating systems and web based gamepad testers don't like min axis set below 0, so 0 is set by default
@@ -175,6 +175,10 @@ void setup()
   {
     pinMode(ANALOGS[i], INPUT);
   }
+
+  // Silnik
+  pinMode(MOT, OUTPUT);
+
 
   // Kolejka wejść cyfrowych
   xQueueDigital = xQueueCreate( QueueDigitalLen, sizeof(ButtonMessage) );
@@ -248,6 +252,17 @@ void setup()
       4096,                   // Rozmiar stosu zadania
       NULL,                   // Parametry funkcji
       PRIORITY_TASK_READ_GYRO,   // Priorytet zadania
+      NULL);                  // Uchwyt do zadania
+  }
+
+  if(CREATE_TASK_MOTOR)
+  {
+    xTaskCreate(
+      TaskMotor,             // Funkcja realizowana przez zadanie
+      "Task Motor",          // Nazwa zadania
+      1024,                   // Rozmiar stosu zadania
+      NULL,                   // Parametry funkcji
+      PRIORITY_TASK_MOTOR,   // Priorytet zadania
       NULL);                  // Uchwyt do zadania
   }
 }
