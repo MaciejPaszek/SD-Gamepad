@@ -88,13 +88,29 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 //--------------------------------------------------
 
 // Statyczna tablica pinów przycisków
-static const int BUTTONS[] = {
+static const int BUTTONS_PIN[] = {
   BUTTON_START,
   BUTTON_SELECT,
   BUTTON_X,
   BUTTON_Y,
   BUTTON_A,
   BUTTON_B,
+  BUTTON_DPAD_L,
+  BUTTON_DPAD_R,
+  BUTTON_DPAD_U,
+  BUTTON_DPAD_D,
+  BUTTON_LB,
+  BUTTON_RB,
+  BUTTON_LS,
+  BUTTON_RS};
+
+static const int BUTTONS_MAP[] = {
+  0,
+  1,
+  4,
+  5,
+  1,
+  2,
   BUTTON_DPAD_L,
   BUTTON_DPAD_R,
   BUTTON_DPAD_U,

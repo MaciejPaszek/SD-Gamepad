@@ -46,18 +46,22 @@ byte MPU6050::setRange(byte range)
   switch(range)
   {
     case MPU6050_RANGE_250_DEG_PER_SEC:
+      _range = 250.0;
       gyroConfig = 0b00000000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 00; 000;
       break;
     
     case MPU6050_RANGE_500_DEG_PER_SEC:
+      _range = 500.0;
       gyroConfig = 0b00001000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 01; 000;
       break;
 
     case MPU6050_RANGE_1000_DEG_PER_SEC:
+      _range = 1000.0;
       gyroConfig = 0b00010000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 10; 000;
       break;
 
     case MPU6050_RANGE_2000_DEG_PER_SEC:
+      _range = 2000.0;
       gyroConfig = 0b00011000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 11; 000;
       break;
 
@@ -112,6 +116,10 @@ byte MPU6050::measure()
   gX = Int16ToInt32(gX);
   gY = Int16ToInt32(gY);
   gZ = Int16ToInt32(gZ);
+
+  vX = gX * _range / 32767.0;
+  vY = gY * _range / 32767.0;
+  vZ = gZ * _range / 32767.0;
 
   error = Wire.endTransmission();
 

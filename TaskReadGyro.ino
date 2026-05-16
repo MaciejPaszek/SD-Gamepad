@@ -32,7 +32,7 @@ void TaskReadGyro(void *)
   // - MPU6050_RANGE_500_DEG_PER_SEC
   // - MPU6050_RANGE_1000_DEG_PER_SEC
   // - MPU6050_RANGE_2000_DEG_PER_SEC
-  error = mpu6050.setRange(MPU6050_RANGE_250_DEG_PER_SEC);
+  error = mpu6050.setRange(MPU6050_RANGE_2000_DEG_PER_SEC);
 
   if(error != MPU6050_NO_ERROR)
   {
@@ -41,39 +41,39 @@ void TaskReadGyro(void *)
   }
 
   // Zmienne na orientację żyroskopu (całka z prędkości)
-  int X = 0;
-  int Y = 0;
-  int Z = 0;
   
-  int eps = 1000;
+  // Pozycja początkowa
+  float X = 0.0;
+  float Y = 0.0;
+  float Z = 0.0;
+  
+  // Granica strefy nieczułości 5 stopni na sekundę
+  float eps = 5.0;
 
   while(true)
   {
     // Wykonaj pomiar z żyroskopu
     mpu6050.measure();
 
-
-
     // Całka z prędkości strefa nieczułości
-    if(mpu6050.gX < -eps || mpu6050.gX > eps)
+    if(mpu6050.vX < -eps || mpu6050.vX > eps)
     {
-      X += mpu6050.gX;
+      X += mpu6050.vX * 0.1; // Uwzględniamy h = 100 ms
     }
 
-    if(mpu6050.gY < -eps || mpu6050.gY > eps)
+    if(mpu6050.vY < -eps || mpu6050.vY > eps)
     {
-      Y += mpu6050.gY;
+      Y += mpu6050.vY * 0.1;
     }
 
-    if(mpu6050.gZ < -eps || mpu6050.gZ > eps)
+    if(mpu6050.vZ < -eps || mpu6050.vZ > eps)
     {
-      Z += mpu6050.gZ;
+      Z += mpu6050.vZ * 0.1;
     }
-
- 
 
     // Wypisz
-    sprintf(buffer, "gX:%d;\tgY:%d;\tgZ:%d;\tX:%d;\tY:%d;\tZ:%d", mpu6050.gX, mpu6050.gY, mpu6050.gZ, X, Y, Z);
+    sprintf(buffer, "gX:%d; gY:%d; gZ:%d;\t vX:%f; vY:%f; vZ:%f;\t X:%f; Y:%f; Z:%f\n",
+            mpu6050.gX, mpu6050.gY, mpu6050.gZ, mpu6050.vX, mpu6050.vY, mpu6050.vZ, X, Y, Z);
     Serial.println(buffer);
 
     // Opóźnienie 100 ms

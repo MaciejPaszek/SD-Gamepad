@@ -48,18 +48,27 @@ class MPU6050
     byte setRange(byte range);
     byte measure();
 
-    // Odczyt żyroskopu na osi X
+    // Odczyt żyroskopu na osi X w zakresie od -32768 do 32767
     int gX;
-    // Odczyt żyroskopu na osi Y
+    // Odczyt żyroskopu na osi Y w zakresie od -32768 do 32767
     int gY;
-    // Odczyt żyroskopu na osi Z
+    // Odczyt żyroskopu na osi Z w zakresie od -32768 do 32767
     int gZ;
+
+    // Odczyt żyroskopu na osi X w stopniach na sekundę
+    float vX;
+    // Odczyt żyroskopu na osi Y w stopniach na sekundę
+    float vY;
+    // Odczyt żyroskopu na osi Z w stopniach na sekundę
+    float vZ;
+
     // Tolerancja błędu
-    int eps;
+    float eps;
 
 
   private:
     int _adr;
+    float _range = 250.0;
     int Int16ToInt32(int int16);
 };
 
