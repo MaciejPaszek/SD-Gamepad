@@ -1,6 +1,7 @@
-//#include <mpu6050.h>
 #include <stdio.h>
+#include "MPU6050.h"
 
+// Adres 
 #define MPU6050_ADR 0x68
 
 #define PWR_MGMT_1 0x6b
@@ -8,55 +9,51 @@
 
 void TaskReadGyro(void *)
 {
+  byte error;
   char buffer[200];
 
+  MPU6050 mpu6050 = MPU6050();
 
+  error = mpu6050.begin(SDA, SCL, MPU6050_ADR);
+  
+  //if(error != MPU6050_NO_ERROR)
+  {
+    sprintf(buffer, "begin error: 0x%02x\n", error);
+    Serial.print(buffer);
+  }
 
-  int gyroX, gyroY, gyroZ; // initialise raw gyroscope variables
-  int gyroPrev = 0;
+  //mpu6050.setRange(MPU6050_RANGE_2000_DEG_PER_SEC);
+  error = mpu6050.setRange(MPU6050_RANGE_2000_DEG_PER_SEC);
+
+  //if(error != MPU6050_NO_ERROR)
+  {
+    sprintf(buffer, "setRange error: 0x%02x\n", error);
+    Serial.print(buffer);
+  }
+
   int X = 0;
   int Y = 0;
   int Z = 0;
-
-  //////////
-  // Wake UP
-  //////////
-
-  Wire.begin(SDA, SCL);
-  Wire.beginTransmission(MPU6050_ADR);
-  Wire.write(PWR_MGMT_1); // global power management register
-  Wire.write(0x00); // wakes sensor up
-  uint8_t error =  Wire.endTransmission(); // returns success/error code
-
-  //////////
-  // Wake UP
-  //////////
-
-  Serial.println("Start TaskReadGyro()");
+  
   while(true)
   {
-    //Serial.println("TaskReadGyro()");
-    
-    ReadGyroscope(gyroX, gyroY, gyroZ);
+    // Wykonaj pomiar z żyroskopu
+    mpu6050.measure();
 
-    // Wire.beginTransmission(MPU6050_ADR); 
-    // Wire.write(GYRO_XOUT_H);
-    // uint8_t error = Wire.endTransmission(false);
-    // Wire.requestFrom(MPU6050_ADR, 6, true);
-    
-    // gyroX = Wire.read() << 8 | Wire.read(); 
-    // gyroY = Wire.read() << 8 | Wire.read();
-    // gyroZ = Wire.read() << 8 | Wire.read();
+    //gyroX = mpu6050.gX;
+    //gyroY = mpu6050.gY;
+    //gyroZ = mpu6050.gZ;
 
-    // gyroX = Int16ToInt32(gyroX);
-    // gyroY = Int16ToInt32(gyroY);
-    // gyroZ = Int16ToInt32(gyroZ);
+    if(mpu6050.gX == 0 & mpu6050.gY == 0 & mpu6050.gZ == 0)
+    {
+      //mpu6050.reset();
+    }
 
-    X += gyroX;
-    Y += gyroY;
-    Z += gyroZ;
+    X += mpu6050.gX;
+    Y += mpu6050.gY;
+    Z += mpu6050.gZ;
 
-    sprintf(buffer, "gX:%d; gY:%d; gZ:%d; X:%d; Y:%d; Z:%d", gyroX, gyroY, gyroZ, X, Y, Z);
+    sprintf(buffer, "gX:%d;\tgY:%d;\tgZ:%d;\tX:%d;\tY:%d;\tZ:%d", mpu6050.gX, mpu6050.gY, mpu6050.gZ, X, Y, Z);
     Serial.println(buffer);
 
     vTaskDelay(100 / portTICK_PERIOD_MS);

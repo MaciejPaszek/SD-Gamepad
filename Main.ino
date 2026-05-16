@@ -193,8 +193,18 @@ void setup()
   // Tryb wejść binarnych z rezystorem podciągającym do 3.3 V
   for(int i = 0; i < NO_BUTTONS; i++)
   {
-    pinMode(BUTTONS[i], INPUT_PULLUP);
+    // Dwa wejścia przycisków nie mają wewnętrznego rezsystora podciągającego
+    if(BUTTONS[i] != 34 && BUTTONS[i] != 35)
+    {
+      pinMode(BUTTONS[i], INPUT_PULLUP);
+    }
+    else
+    {
+      pinMode(BUTTONS[i], INPUT);
+    }
   }
+  //E (19) gpio: gpio_pullup_en(85): GPIO number error (input-only pad has no internal PU)
+  //E (19) gpio: gpio_pullup_en(85): GPIO number error (input-only pad has no internal PU)
   
   // Tryb wejść analogowych
   for(int i = 0; i < NO_ANALOGS; i++)

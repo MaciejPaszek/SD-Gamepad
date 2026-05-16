@@ -1,0 +1,66 @@
+/*
+  MPU6050.h
+  (c) Maciej Paszek 2026
+*/
+
+#ifndef MPU6050_h
+#define MPU6050_h
+
+#include "MPU6050.h"
+#include <Wire.h>
+
+// Rejestry konfiguracyjne
+#define CONFIG 0x1a
+#define GYRO_CONFIG 0x1b
+
+// Rejestry danych pomiarowych z żyroskopu
+#define GYRO_XOUT_H 0x43
+#define GYRO_XOUT_L 0x44
+#define GYRO_YOUT_H 0x45
+#define GYRO_YOUT_L 0x46
+#define GYRO_ZOUT_H 0x47
+#define GYRO_ZOUT_L 0x48
+
+// Rejestry zarządzania zasilaniem
+#define PWR_MGMT_1 0x6b
+#define PWR_MGMT_2 0x6c
+
+#define MPU6050_NO_ERROR            0
+#define MPU6050_ERROR_DATA_TOO_LONG 1
+#define MPU6050_ERROR_NACK_ADRESS   2
+#define MPU6050_ERROR_NACK_DATA     3
+#define MPU6050_ERROR_OTHER         4
+#define MPU6050_ERROR_TIMEOUT       5
+#define MPU6050_ERROR_AVAILABLE     6
+#define MPU6050_ERROR_INVAILD_ARGUMENT 7
+
+#define MPU6050_RANGE_250_DEG_PER_SEC  0
+#define MPU6050_RANGE_500_DEG_PER_SEC  1
+#define MPU6050_RANGE_1000_DEG_PER_SEC 2
+#define MPU6050_RANGE_2000_DEG_PER_SEC 3
+
+class MPU6050
+{
+  public:
+    MPU6050();
+    byte begin(uint8_t sda, uint8_t scl, int adr);
+    byte reset();
+    byte setRange(byte range);
+    byte measure();
+
+    // Odczyt żyroskopu na osi X
+    int gX;
+    // Odczyt żyroskopu na osi Y
+    int gY;
+    // Odczyt żyroskopu na osi Z
+    int gZ;
+    // Tolerancja błędu
+    int eps;
+
+
+  private:
+    int _adr;
+    int Int16ToInt32(int int16);
+};
+
+#endif
