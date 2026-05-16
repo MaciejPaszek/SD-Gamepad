@@ -23,6 +23,18 @@ void TaskReadDigitalInput(void *)
         {
           Serial.println("xQueueDigital is full.");
         }
+
+        if(TEST_DIGITAL_INPUT)
+        {
+          Serial.print(BUTTONS_NAMES[i]);
+          Serial.print("\tButton:\t");
+          Serial.print(i);
+          Serial.print("\tPin:\t");
+          Serial.print(BUTTONS[i]);
+          Serial.print("\tState:\t");
+          Serial.print(buttonState[i]);
+          Serial.println();
+        }
       }
 
       buttonPrevState[i] = buttonState[i];

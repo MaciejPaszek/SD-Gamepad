@@ -10,33 +10,39 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Wejścia Cyfrowe
 //--------------------------------------------------
 
+// Zmienić liczbę wejść cyfrowych z 14 do 10
 #define NO_BUTTONS      14  // Liczba wejść cyfrowych
 
-#define BUTTON_START     5  // Przycisk Start
-#define BUTTON_SELECT   34  // Przycisk Wybierz
-#define BUTTON_X        35  // Przycisk X
-#define BUTTON_Y        32  // Przycisk Y
-#define BUTTON_A        33  // Przycisk A
-#define BUTTON_B        25  // Przycisk B
-#define BUTTON_DPAD_L   17  // Przycisk kierunkowy lewy
-#define BUTTON_DPAD_R   16  // Przycisk kierunkowy prawy
-#define BUTTON_DPAD_U    4  // Przycisk kierunkowy górny
+#define BUTTON_START    34  // Przycisk Start
+#define BUTTON_SELECT    5  // Przycisk Wybierz
+#define BUTTON_X        33  // Przycisk X
+#define BUTTON_Y        35  // Przycisk Y
+#define BUTTON_A        25  // Przycisk A
+#define BUTTON_B        32  // Przycisk B
+#define BUTTON_LB       18  // Przycisk zderzak lewy
+#define BUTTON_RB       23  // Przycisk zderzak prawy
+#define BUTTON_LS        2  // Przycisk gałki analogowej lewej
+#define BUTTON_RS       27  // Przycisk gałki analogowej prawej
+
+//--------------------------------------------------
+// Wejścia Cyfrowe - Hatsune Switch (aka DPAD)
+//--------------------------------------------------
+
+#define BUTTON_DPAD_L   16  // Przycisk kierunkowy lewy
+#define BUTTON_DPAD_R    4  // Przycisk kierunkowy prawy
+#define BUTTON_DPAD_U   17  // Przycisk kierunkowy górny
 #define BUTTON_DPAD_D    0  // Przycisk kierunkowy dolny
-#define BUTTON_LB       23  // Przycisk zderzak lewy
-#define BUTTON_RB       18  // Przycisk zderzak prawy
-#define BUTTON_LS       14  // Przycisk gałki analogowej lewej
-#define BUTTON_RS       13  // Przycisk gałki analogowej prawej
- 
+
 //--------------------------------------------------
 // Wejścia Analogowe
 //--------------------------------------------------
 
 #define NO_ANALOGS       6  // Liczba wejść analogowych
 
-#define ANALOG_LX       26  // Gałka lewa oś X
-#define ANALOG_LY       27  // Gałka lewa oś Y
-#define ANALOG_RX        2  // Gałka prawa oś X
-#define ANALOG_RY       15  // Gałka prawa oś Y
+#define ANALOG_LX       13  // Gałka lewa oś X  
+#define ANALOG_LY       15  // Gałka lewa oś Y
+#define ANALOG_RX       26  // Gałka prawa oś X
+#define ANALOG_RY       14  // Gałka prawa oś Y
 #define ANALOG_LT       36  // Spust lewy
 #define ANALOG_RT       39  // Spust prawy
 
@@ -44,8 +50,8 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Żyroskop
 //--------------------------------------------------
 
-#define SCL             22  // Zegar I2C
 #define SDA             19  // Dane I2C
+#define SCL             22  // Zegar I2C
 
 //--------------------------------------------------
 // Silnik
@@ -62,8 +68,8 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define CREATE_TASK_SERIAL                0
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
-#define CREATE_TASK_READ_GYRO             0
-#define CREATE_TASK_MOTOR                 1
+#define CREATE_TASK_READ_GYRO             1
+#define CREATE_TASK_MOTOR                 0
 
 // Priorytety zadań
 #define PRIORITY_TASK_BLUETOOTH           1
@@ -72,6 +78,10 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define PRIORITY_TASK_READ_ANALOG_INPUT   4
 #define PRIORITY_TASK_READ_GYRO           5
 #define PRIORITY_TASK_MOTOR               6
+
+//
+#define TEST_DIGITAL_INPUT 1
+
 
 //--------------------------------------------------
 // Stałe statyczne
@@ -93,6 +103,22 @@ static const int BUTTONS[] = {
   BUTTON_RB,
   BUTTON_LS,
   BUTTON_RS};
+
+static String BUTTONS_NAMES[] = {
+  "BUTTON_START",
+  "BUTTON_SELECT",
+  "BUTTON_X",
+  "BUTTON_Y",
+  "BUTTON_A",
+  "BUTTON_B",
+  "BUTTON_DPAD_L",
+  "BUTTON_DPAD_R",
+  "BUTTON_DPAD_U",
+  "BUTTON_DPAD_D",
+  "BUTTON_LB",
+  "BUTTON_RB",
+  "BUTTON_LS",
+  "BUTTON_RS"};
 
 // Statyczna tablica pinów analogowych
 static const int ANALOGS[] = {
@@ -269,6 +295,7 @@ void setup()
 
 void loop()
 {
+  // Do sprawdzenia
   if (bleGamepad.isConnected())
   {
 

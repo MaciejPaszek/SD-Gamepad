@@ -30,13 +30,13 @@ void TaskBluetooth(void *)
         }
 
         // Hat switch
-        if(buttonMessage.buttonID == BUTTON_DPAD_L)
-        {
-          DPAD_CENTERED
-    DPAD_UP, DPAD_UP_RIGHT, DPAD_RIGHT, DPAD_DOWN_RIGHT, DPAD_DOWN, DPAD_DOWN_LEFT, DPAD_LEFT, DPAD_UP_LEFT
+        //if(buttonMessage.buttonID == BUTTON_DPAD_L)
+        //{
+        //  DPAD_CENTERED
+    //DPAD_UP, DPAD_UP_RIGHT, DPAD_RIGHT, DPAD_DOWN_RIGHT, DPAD_DOWN, DPAD_DOWN_LEFT, DPAD_LEFT, DPAD_UP_LEFT
 
-          setHat(1);
-        }
+          //setHat(1);
+        //}
       }
     }
 
