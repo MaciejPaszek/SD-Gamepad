@@ -11,22 +11,24 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 //--------------------------------------------------
 
 // Zmienić liczbę wejść cyfrowych z 14 do 10
-#define NO_BUTTONS      14  // Liczba wejść cyfrowych
+#define NO_BUTTONS      10  // Liczba wejść cyfrowych
 
-#define BUTTON_START    34  // Przycisk Start
-#define BUTTON_SELECT    5  // Przycisk Wybierz
-#define BUTTON_X        33  // Przycisk X
-#define BUTTON_Y        35  // Przycisk Y
 #define BUTTON_A        25  // Przycisk A
 #define BUTTON_B        32  // Przycisk B
+#define BUTTON_X        33  // Przycisk X
+#define BUTTON_Y        35  // Przycisk Y
 #define BUTTON_LB       18  // Przycisk zderzak lewy
 #define BUTTON_RB       23  // Przycisk zderzak prawy
+#define BUTTON_START    34  // Przycisk Start
+#define BUTTON_SELECT    5  // Przycisk Wybierz
 #define BUTTON_LS        2  // Przycisk gałki analogowej lewej
 #define BUTTON_RS       27  // Przycisk gałki analogowej prawej
 
 //--------------------------------------------------
 // Wejścia Cyfrowe - Hatsune Switch (aka DPAD)
 //--------------------------------------------------
+
+#define NO_DPAD      4  // Liczba wejść cyfrowych
 
 #define BUTTON_DPAD_L   16  // Przycisk kierunkowy lewy
 #define BUTTON_DPAD_R    4  // Przycisk kierunkowy prawy
@@ -68,8 +70,8 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define CREATE_TASK_SERIAL                0
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
-#define CREATE_TASK_READ_GYRO             1
-#define CREATE_TASK_MOTOR                 0
+#define CREATE_TASK_READ_GYRO             0
+#define CREATE_TASK_MOTOR                 1
 
 // Priorytety zadań
 #define PRIORITY_TASK_BLUETOOTH           1
@@ -87,54 +89,32 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Stałe statyczne
 //--------------------------------------------------
 
-// Statyczna tablica pinów przycisków
-static const int BUTTONS_PIN[] = {
-  BUTTON_START,
-  BUTTON_SELECT,
-  BUTTON_X,
-  BUTTON_Y,
-  BUTTON_A,
-  BUTTON_B,
-  BUTTON_DPAD_L,
-  BUTTON_DPAD_R,
-  BUTTON_DPAD_U,
-  BUTTON_DPAD_D,
-  BUTTON_LB,
-  BUTTON_RB,
-  BUTTON_LS,
-  BUTTON_RS};
+typedef struct
+{
+     uint8_t id;
+     uint8_t pin;
+     String name;
+}input;
 
-static const int BUTTONS_MAP[] = {
-  0,
-  1,
-  4,
-  5,
-  1,
-  2,
-  BUTTON_DPAD_L,
-  BUTTON_DPAD_R,
-  BUTTON_DPAD_U,
-  BUTTON_DPAD_D,
-  BUTTON_LB,
-  BUTTON_RB,
-  BUTTON_LS,
-  BUTTON_RS};
+static const input BUTTONS[] = {
+  { 1, BUTTON_A,      "A"},
+  { 2, BUTTON_B,      "B"},
+  { 4, BUTTON_X,      "X"},
+  { 5, BUTTON_Y,      "Y"},
+  { 7, BUTTON_LB,     "LB"},
+  { 8, BUTTON_RB,     "RB"},
+  {11, BUTTON_SELECT, "SELECT"},
+  {12, BUTTON_START,  "START"},
+  {14, BUTTON_LS,     "LS"},
+  {15, BUTTON_RS,     "RS"},
+};
 
-static String BUTTONS_NAMES[] = {
-  "BUTTON_START",
-  "BUTTON_SELECT",
-  "BUTTON_X",
-  "BUTTON_Y",
-  "BUTTON_A",
-  "BUTTON_B",
-  "BUTTON_DPAD_L",
-  "BUTTON_DPAD_R",
-  "BUTTON_DPAD_U",
-  "BUTTON_DPAD_D",
-  "BUTTON_LB",
-  "BUTTON_RB",
-  "BUTTON_LS",
-  "BUTTON_RS"};
+static const input DPAD[] = {
+  { 0, BUTTON_DPAD_U, "BUTTON_DPAD_U"},
+  { 1, BUTTON_DPAD_R, "BUTTON_DPAD_R"},
+  { 2, BUTTON_DPAD_D, "BUTTON_DPAD_D"},
+  { 3, BUTTON_DPAD_L, "BUTTON_DPAD_L"},
+};
 
 // Statyczna tablica pinów analogowych
 static const int ANALOGS[] = {
@@ -158,6 +138,9 @@ SemaphoreHandle_t xSemaphore;
 static const uint8_t QueueDigitalLen = 30;
 QueueHandle_t xQueueDigital;
 
+static const uint8_t QueueDPADLen = 30;
+QueueHandle_t xQueueDPAD;
+
 static const uint8_t QueueAnalogLen = 30;
 QueueHandle_t xQueueAnalog;
 
@@ -173,10 +156,15 @@ typedef struct
 
 typedef struct 
 {
+    int dpadID;
+    bool dpadState;
+}DPADMessage;
+
+typedef struct 
+{
     int analogID;
     int analogVal;
 }AnalogMessage;
-
 
 //--------------------------------------------------
 // Setup - punkt wejścia programu
@@ -195,7 +183,7 @@ void setup()
   bleGamepadConfig.setAutoReport(false);
 
   bleGamepadConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD); // CONTROLLER_TYPE_JOYSTICK, CONTROLLER_TYPE_GAMEPAD (DEFAULT), CONTROLLER_TYPE_MULTI_AXIS
-  bleGamepadConfig.setButtonCount(NO_BUTTONS);
+  bleGamepadConfig.setButtonCount(16);
   bleGamepadConfig.setHatSwitchCount(1);
   //bleGamepadConfig.setVid(0xe502);
   //bleGamepadConfig.setPid(0xabcd);
@@ -210,17 +198,21 @@ void setup()
   for(int i = 0; i < NO_BUTTONS; i++)
   {
     // Dwa wejścia przycisków nie mają wewnętrznego rezsystora podciągającego
-    if(BUTTONS[i] != 34 && BUTTONS[i] != 35)
+    if(BUTTONS[i].pin != 34 && BUTTONS[i].pin != 35)
     {
-      pinMode(BUTTONS[i], INPUT_PULLUP);
+      pinMode(BUTTONS[i].pin, INPUT_PULLUP);
     }
     else
     {
-      pinMode(BUTTONS[i], INPUT);
+      pinMode(BUTTONS[i].pin, INPUT);
     }
   }
-  //E (19) gpio: gpio_pullup_en(85): GPIO number error (input-only pad has no internal PU)
-  //E (19) gpio: gpio_pullup_en(85): GPIO number error (input-only pad has no internal PU)
+
+  // Wejścia przycisków kierunkowych
+  for(int i = 0; i < NO_DPAD; i++)
+  {
+    pinMode(DPAD[i].pin, INPUT_PULLUP);
+  }
   
   // Tryb wejść analogowych
   for(int i = 0; i < NO_ANALOGS; i++)
@@ -231,13 +223,20 @@ void setup()
   // Silnik
   pinMode(MOT, OUTPUT);
 
-
   // Kolejka wejść cyfrowych
   xQueueDigital = xQueueCreate( QueueDigitalLen, sizeof(ButtonMessage) );
 
   if( xQueueDigital == NULL )
   {
-    Serial.println("Queue could not be created with xQueueCreate");
+    Serial.println("xQueueDigital could not be created with xQueueCreate");
+  }
+
+  // Kolejka wejść DPAD
+  xQueueDPAD = xQueueCreate( QueueDPADLen, sizeof(DPADMessage) );
+
+  if( xQueueDPAD == NULL )
+  {
+    Serial.println("xQueueDPAD could not be created with xQueueCreate");
   }
 
   // Kolejka wejść analogowych
@@ -245,7 +244,7 @@ void setup()
 
   if( xQueueAnalog == NULL )
   {
-    Serial.println("QueueAnalog could not be created with xQueueCreate");
+    Serial.println("xQueueAnalog could not be created with xQueueCreate");
   }
 
   // Zadanie 1 - Transmisja szeregowa

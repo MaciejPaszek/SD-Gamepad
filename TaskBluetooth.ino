@@ -3,12 +3,8 @@ void TaskBluetooth(void *)
   int AnalogValues[NO_ANALOGS] = {0}; 
 
   ButtonMessage buttonMessage;
+  DPADMessage dpadMessage;
   AnalogMessage analogMessage;
-  
-  bool dPadUp     = false;
-  bool dPadRight  = false;
-  bool dPadDown   = false;
-  bool dPadLeft   = false;
 
   while(true)
   {
@@ -28,15 +24,24 @@ void TaskBluetooth(void *)
             bleGamepad.release(buttonMessage.buttonID);
           }
         }
+      }
+    }
 
-        // Hat switch
-        //if(buttonMessage.buttonID == BUTTON_DPAD_L)
-        //{
-        //  DPAD_CENTERED
-    //DPAD_UP, DPAD_UP_RIGHT, DPAD_RIGHT, DPAD_DOWN_RIGHT, DPAD_DOWN, DPAD_DOWN_LEFT, DPAD_LEFT, DPAD_UP_LEFT
-
-          //setHat(1);
-        //}
+    if( xQueueDPAD != NULL )
+    {
+      while( xQueueReceive( xQueueDPAD, (void *)&dpadMessage, 0 ) == pdPASS )
+      {
+        if (bleGamepad.isConnected())
+        {
+          if(dpadMessage.dpadState == true)
+          {
+            bleGamepad.setHat1(DPAD_DOWN_RIGHT);
+          }
+          else
+          {
+            bleGamepad.setHat1(DPAD_UP_LEFT);
+          }
+        }
       }
     }
 
@@ -53,9 +58,24 @@ void TaskBluetooth(void *)
   
     // Wyślij stan gamepada
 
-    bleGamepad.setAxes(AnalogValues[0], AnalogValues[1], AnalogValues[2], AnalogValues[3], AnalogValues[4], AnalogValues[5]);
+    // Lewa gałka analogowa
+    bleGamepad.setX(AnalogValues[0]);
+    bleGamepad.setY(AnalogValues[1]);
+
+    // Prawa gałka analogowa
+    bleGamepad.setZ(AnalogValues[2]);
+    bleGamepad.setRZ(AnalogValues[3]);
+
+    // Lewy trigger
+    bleGamepad.setRX(AnalogValues[4]);
+
+    // Prawy trigger
+    bleGamepad.setRY(AnalogValues[5]);
+
+    // Wysyłanie
     bleGamepad.sendReport();
 
+    // Opóźnienie
     vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }
