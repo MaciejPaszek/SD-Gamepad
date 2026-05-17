@@ -12,8 +12,10 @@ void TaskReadGyro(void *)
   // Kod błędu
   byte error;
 
+  AnalogMessage analogMessage;
+
   // Łańcuch znakó dla komunikatów o błędach
-  char buffer[255];
+  char buffer[300];
 
   // Obiekt klasy MPU6050
   MPU6050 mpu6050 = MPU6050();
@@ -71,10 +73,35 @@ void TaskReadGyro(void *)
       Z += mpu6050.vZ * 0.1;
     }
 
+    // Przygotuj komunikat do kolejki o zmianie odczytu analoga
+    //analogMessage.analogID = 0;
+    //analogMessage.analogVal = (int) X;
+
+    //if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
+    //{
+    //  Serial.println("QueueAnalog is full.");
+    //}
+
+    analogMessage.analogID = 0;
+    analogMessage.analogVal = 2048 + (int) (Y / 180.0 * 2048.0);
+
+    if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
+    {
+      Serial.println("xQueueGyro is full.");
+    }
+
+    analogMessage.analogID = 1;
+    analogMessage.analogVal = 2048 + (int) (Z / 180.0 * 2048.0);
+
+    if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
+    {
+      Serial.println("xQueueGyro is full.");
+    }
+
     // Wypisz
-    sprintf(buffer, "gX:%d; gY:%d; gZ:%d;\t vX:%f; vY:%f; vZ:%f;\t X:%f; Y:%f; Z:%f\n",
-            mpu6050.gX, mpu6050.gY, mpu6050.gZ, mpu6050.vX, mpu6050.vY, mpu6050.vZ, X, Y, Z);
-    Serial.println(buffer);
+    sprintf(buffer, "gX:%d; gY:%d; gZ:%d;\t X:%f; Y:%f; Z:%f\n",
+            mpu6050.gX, mpu6050.gY, mpu6050.gZ, X, Y, Z);
+    Serial.print(buffer);
 
     // Opóźnienie 100 ms
     vTaskDelay(100 / portTICK_PERIOD_MS);

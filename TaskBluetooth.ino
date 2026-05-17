@@ -33,14 +33,7 @@ void TaskBluetooth(void *)
       {
         if (bleGamepad.isConnected())
         {
-          if(dpadMessage.dpadState == true)
-          {
-            bleGamepad.setHat1(DPAD_DOWN_RIGHT);
-          }
-          else
-          {
-            bleGamepad.setHat1(DPAD_UP_LEFT);
-          }
+          bleGamepad.setHat1(dpadMessage.dpadState);
         }
       }
     }
@@ -52,6 +45,22 @@ void TaskBluetooth(void *)
         if(analogMessage.analogID >= 0 && analogMessage.analogID < NO_ANALOGS)
         {
           AnalogValues[analogMessage.analogID] = analogMessage.analogVal;
+        }
+      }
+    }
+
+    if( xQueueGyro != NULL )
+    {
+      while( xQueueReceive( xQueueGyro, (void *)&analogMessage, 0 ) == pdPASS )
+      {
+        if(analogMessage.analogID == 0)
+        {
+          bleGamepad.setSlider1(analogMessage.analogVal);
+        }
+
+        if(analogMessage.analogID == 1)
+        {
+          bleGamepad.setSlider2(analogMessage.analogVal);
         }
       }
     }

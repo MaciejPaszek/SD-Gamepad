@@ -1,3 +1,5 @@
+signed char dpadTranslator(bool dpadUp, bool dpadDown, bool dpadLeft, bool dpadRight);
+
 void TaskReadDigitalInput(void *)
 {
   bool buttonState[NO_BUTTONS] = {false};
@@ -53,9 +55,8 @@ void TaskReadDigitalInput(void *)
       if(dpadState[i] != dpadPrevState[i])
       {
         // Przygotuj komunikat do kolejki o zmianie stanu przycisku
-        dpadMessage.dpadID = DPAD[i].id; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
-        dpadMessage.dpadState = dpadState[i];
-
+        dpadMessage.dpadState = dpadTranslator(dpadState[0], dpadState[1], dpadState[2], dpadState[3]);
+        Serial.println(dpadMessage.dpadState);
         if(xQueueSend( xQueueDPAD, ( void * ) &dpadMessage, 10 ) != pdTRUE)
         {
           Serial.println("xQueueDPAD is full.");
@@ -79,4 +80,86 @@ void TaskReadDigitalInput(void *)
     
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
+}
+
+signed char dpadTranslator(bool dpadUp, bool dpadRight, bool dpadDown, bool dpadLeft)
+{
+  int dpadX = 0;
+  int dpadY = 0;
+
+  if(dpadRight == true)
+  {
+    dpadX += 1;
+  }
+
+  if(dpadLeft == true)
+  {
+    dpadX -= 1;
+  }
+
+  if(dpadUp == true)
+  {
+    dpadY += 1;
+  }
+
+  if(dpadDown == true)
+  {
+    dpadY -= 1;
+  }
+
+  if(dpadY == 1)
+  {
+    if(dpadX == -1)
+    {
+      return DPAD_UP_LEFT;
+    }
+
+    if(dpadX == 0)
+    {
+      return DPAD_UP;
+    }
+
+    if(dpadX == 1)
+    {
+      return DPAD_UP_RIGHT;
+    }
+  }
+
+  if(dpadY == 0)
+  {
+    if(dpadX == -1)
+    {
+      return DPAD_LEFT;
+    }
+
+    if(dpadX == 0)
+    {
+      return DPAD_CENTERED;
+    }
+
+    if(dpadX == 1)
+    {
+      return DPAD_RIGHT;
+    }
+  }
+
+  if(dpadY == -1)
+  {
+    if(dpadX == -1)
+    {
+      return DPAD_DOWN_LEFT;
+    }
+
+    if(dpadX == 0)
+    {
+      return DPAD_DOWN;
+    }
+
+    if(dpadX == 1)
+    {
+      return DPAD_DOWN_RIGHT;
+    }
+  }
+
+  return DPAD_CENTERED;
 }

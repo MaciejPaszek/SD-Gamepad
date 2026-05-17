@@ -47,6 +47,7 @@ class MPU6050
     byte reset();
     byte setRange(byte range);
     byte measure();
+    //byte calculate(float h);
 
     // Odczyt żyroskopu na osi X w zakresie od -32768 do 32767
     int gX;
@@ -62,8 +63,15 @@ class MPU6050
     // Odczyt żyroskopu na osi Z w stopniach na sekundę
     float vZ;
 
-    // Tolerancja błędu
-    float eps;
+    // Pozycja żyroskopu na osi X w stopniach
+    float posX;
+    // Pozycja żyroskopu na osi Y w stopniach
+    float posY;
+    // Pozycja żyroskopu na osi Z w stopniach
+    float posZ;
+
+    // Strefa nieczułości [-eps, eps] w stopniach
+    float eps = 5.0;
 
 
   private:

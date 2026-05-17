@@ -52,8 +52,8 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Żyroskop
 //--------------------------------------------------
 
-#define SDA             19  // Dane I2C
-#define SCL             22  // Zegar I2C
+#define SDA             22  // Dane I2C
+#define SCL             19  // Zegar I2C
 
 //--------------------------------------------------
 // Silnik
@@ -70,8 +70,8 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define CREATE_TASK_SERIAL                0
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
-#define CREATE_TASK_READ_GYRO             0
-#define CREATE_TASK_MOTOR                 1
+#define CREATE_TASK_READ_GYRO             1
+#define CREATE_TASK_MOTOR                 0
 
 // Priorytety zadań
 #define PRIORITY_TASK_BLUETOOTH           1
@@ -144,6 +144,9 @@ QueueHandle_t xQueueDPAD;
 static const uint8_t QueueAnalogLen = 30;
 QueueHandle_t xQueueAnalog;
 
+static const uint8_t QueueGyroLen = 30;
+QueueHandle_t xQueueGyro;
+
 //--------------------------------------------------
 // Struktury
 //--------------------------------------------------
@@ -156,8 +159,7 @@ typedef struct
 
 typedef struct 
 {
-    int dpadID;
-    bool dpadState;
+    signed char dpadState;
 }DPADMessage;
 
 typedef struct 
@@ -190,7 +192,7 @@ void setup()
   // Some non-Windows operating systems and web based gamepad testers don't like min axis set below 0, so 0 is set by default
   //bleGamepadConfig.setAxesMin(0x8001); // -32767 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal
   bleGamepadConfig.setAxesMin(0); // 0 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal
-  bleGamepadConfig.setAxesMax(4096); // 32767 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal 
+  bleGamepadConfig.setAxesMax(4095); // 32767 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal 
 
   bleGamepad.begin(&bleGamepadConfig);
 
@@ -245,6 +247,13 @@ void setup()
   if( xQueueAnalog == NULL )
   {
     Serial.println("xQueueAnalog could not be created with xQueueCreate");
+  }
+
+  xQueueGyro = xQueueCreate( QueueGyroLen, sizeof(AnalogMessage) );
+
+  if( xQueueGyro == NULL )
+  {
+    Serial.println("xQueueGyro could not be created with xQueueCreate");
   }
 
   // Zadanie 1 - Transmisja szeregowa
