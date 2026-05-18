@@ -147,6 +147,9 @@ QueueHandle_t xQueueAnalog;
 static const uint8_t QueueGyroLen = 30;
 QueueHandle_t xQueueGyro;
 
+bool globalCalibration = false;
+SemaphoreHandle_t xSemaphoreCalibration;
+
 //--------------------------------------------------
 // Struktury
 //--------------------------------------------------
@@ -254,6 +257,13 @@ void setup()
   if( xQueueGyro == NULL )
   {
     Serial.println("xQueueGyro could not be created with xQueueCreate");
+  }
+
+  xSemaphoreCalibration = xSemaphoreCreateBinary();
+
+  if( xSemaphoreCalibration == NULL )
+  {
+    Serial.println("xSemaphoreCalibration could not be created with xSemaphoreCreateBinary");
   }
 
   // Zadanie 1 - Transmisja szeregowa

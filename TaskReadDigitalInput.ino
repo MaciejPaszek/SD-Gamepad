@@ -8,6 +8,9 @@ void TaskReadDigitalInput(void *)
   bool dpadState[NO_DPAD] = {false};
   bool dpadPrevState[NO_DPAD] = {false};
 
+  bool calibration = false;
+  int CalibrationCounter;
+
   static ButtonMessage buttonMessage;
   static DPADMessage dpadMessage;
 
@@ -30,6 +33,7 @@ void TaskReadDigitalInput(void *)
           Serial.println("xQueueDigital is full.");
         }
 
+        // Wypisz
         if(TEST_DIGITAL_INPUT)
         {
           Serial.print(BUTTONS[i].name);
@@ -41,6 +45,25 @@ void TaskReadDigitalInput(void *)
           Serial.print(buttonState[i]);
           Serial.println();
         }
+
+        // Kalibracja
+        // Wciśnięty przycisk start i select
+        // if(buttonState[6] == true && buttonState[7] == true)
+        // {
+        //   if( xSemaphoreCalibration != NULL )
+        //   {
+        //     if( xSemaphoreTake( xSemaphoreCalibration, ( TickType_t ) 10 ) == pdTRUE )
+        //     {
+        //       globalCalibration = true;
+        //       xSemaphoreGive( xSemaphoreCalibration );
+        //     }
+        //     else
+        //     {
+        //       Serial.println("TaskReadDigital: xSemaphoreCalibration taken");
+        //     }
+        //   }
+        // }
+        
       }
 
       buttonPrevState[i] = buttonState[i];
@@ -56,7 +79,7 @@ void TaskReadDigitalInput(void *)
       {
         // Przygotuj komunikat do kolejki o zmianie stanu przycisku
         dpadMessage.dpadState = dpadTranslator(dpadState[0], dpadState[1], dpadState[2], dpadState[3]);
-        Serial.println(dpadMessage.dpadState);
+
         if(xQueueSend( xQueueDPAD, ( void * ) &dpadMessage, 10 ) != pdTRUE)
         {
           Serial.println("xQueueDPAD is full.");

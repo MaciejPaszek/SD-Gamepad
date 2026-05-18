@@ -1,46 +1,47 @@
 #include "Arduino.h"
 #include "MPU6050.h"
 
-// Konstruktor bezargumentowy
-MPU6050::MPU6050()
+// Konstruktor
+MPU6050::MPU6050(uint8_t sda, uint8_t scl, int adr)
 {
-
-}
-
-byte MPU6050::begin(uint8_t sda, uint8_t scl, int adr)
-{
-  // Kod błędu
-  byte error;
-
   // Adres I2C
   _adr = adr;
 
   // Roczpocznij I2C na określonych pinach
   Wire.begin(sda, scl);
+}
+
+byte MPU6050::begin()
+{
+  // Kod błędu
+  byte error;
 
   // Ustaw rejestr PWR_MGMT_1
   Wire.beginTransmission(_adr);
   Wire.write(PWR_MGMT_1);
-  //Wire.write(0x00); // wakes sensor up
   Wire.write(0x00001001); // DEVICE_RESET = 0; SLEEP = 0; CYCLE = 0; 0; TEMP_DIS = 1; CLKSEL = 001 (X axis gyroscope);
   error = Wire.endTransmission();
 
   if(error != MPU6050_NO_ERROR)
   {
     return error;
-  } 
+  }
 
+  // Ustaw rejestr PWR_MGMT_2
   Wire.beginTransmission(_adr);
   Wire.write(PWR_MGMT_2);
   Wire.write(0x00111000); // LP_WAKE_CTRL = 00; STBY_XA = 1; STBY_YA = 1; STBY_ZA = 1; STBY_XG = 0; STBY_YG = 0; STBY_ZG = 0;
   error = Wire.endTransmission();
 
-  // Zwracanie wartości błędu
   return error;
 }
 
 byte MPU6050::setRange(byte range)
 {
+  // Kod błędu
+  byte error;
+
+  // Bajt rejestr
   byte gyroConfig;
 
   switch(range)
@@ -72,7 +73,7 @@ byte MPU6050::setRange(byte range)
   Wire.beginTransmission(_adr);
   Wire.write(GYRO_CONFIG);
   Wire.write(gyroConfig);
-  byte error = Wire.endTransmission();
+  error = Wire.endTransmission();
 
   return error;
 }
@@ -92,11 +93,18 @@ byte MPU6050::reset()
 
 byte MPU6050::measure()
 {
+  // Kod błędu
+  byte error;
+
   // Ustaw adres odczytu na rejestr GYRO_XOUT_H
   Wire.beginTransmission(_adr);
   Wire.write(GYRO_XOUT_H);
-  // Zakończ transmisję bez resetowania
-  uint8_t error = Wire.endTransmission(false);
+  error = Wire.endTransmission();
+
+  if(error != MPU6050_NO_ERROR)
+  {
+    return error;
+  }
 
   // Zażądaj odczytu 6 bajtów danych rozpoczynając od adresu GYRO_XOUT_H
   Wire.requestFrom(_adr, 6);
@@ -104,6 +112,14 @@ byte MPU6050::measure()
   // Sprawdź, czy do odczytu jest co najmniej 6 bajtów
   if(Wire.available() < 6)
   {
+    //gX = 0.0;
+    //gY = 0.0;
+    //gZ = 0.0;
+
+    //posX = 0.0;
+    //posY = 0.0;
+    //posZ = 0.0;
+
     return MPU6050_ERROR_AVAILABLE;
   }
 
@@ -112,18 +128,72 @@ byte MPU6050::measure()
   gY = Wire.read() << 8 | Wire.read();
   gZ = Wire.read() << 8 | Wire.read();
 
+  error = Wire.endTransmission();
+
   // Przekonweryuj int16 na int32
   gX = Int16ToInt32(gX);
   gY = Int16ToInt32(gY);
   gZ = Int16ToInt32(gZ);
 
-  vX = gX * _range / 32767.0;
-  vY = gY * _range / 32767.0;
-  vZ = gZ * _range / 32767.0;
-
-  error = Wire.endTransmission();
-
   return error;
+}
+
+void MPU6050::calibrate(int i)
+{
+  gAvgX = (gAvgX * i + gX) / (i + 1.0);
+  gAvgY = (gAvgY * i + gY) / (i + 1.0);
+  gAvgZ = (gAvgZ * i + gZ) / (i + 1.0);
+
+  return;
+}
+
+void MPU6050::calculate(float h)
+{
+  // Oblicz prędkości w stopniach na sekundę
+  vX = (gX - gAvgX) * _range / 32767.0;
+  vY = (gY - gAvgY) * _range / 32767.0;
+  vZ = (gZ - gAvgZ) * _range / 32767.0;
+
+  if(vX < -eps || vX > eps)
+  {
+    // Wykonaj krok na osi X
+    posX = posX + vX * h;
+    
+    // Ograniczenie na oś
+    if(posX < posMinX) { posX = posMinX; }
+    if(posX > posMaxX) { posX = posMaxX; }
+
+    // Przelicz na slider
+    analogX = analogMin + (int) ((posX - posMinX) / (posMaxX - posMinX) * (analogMax - analogMin));
+  }
+
+  if(vY < -eps || vY > eps)
+  {
+    // Wykonaj krok na osi Y
+    posY = posY + vY * h;
+  
+    // Ograniczenie na oś Y
+    if(posY < posMinY) { posY = posMinY; }
+    if(posY > posMaxY) { posY = posMaxY; }
+
+    // Przelicz na slider
+    analogY = analogMin + (int) ((posY - posMinY) / (posMaxY - posMinY) * (analogMax - analogMin));
+  }
+
+  if(vZ < -eps || vZ > eps)
+  {
+    // Wykonaj krok na osi Z
+    posZ = posZ + vZ * h; 
+
+    // Ograniczenie na oś Z
+    if(posZ < posMinZ) { posZ = posMinZ; }
+    if(posZ > posMaxZ) { posZ = posMaxZ; }
+
+    // Przelicz na slider
+    analogZ = analogMin + (int) ((posZ - posMinZ) / (posMaxZ - posMinZ) * (analogMax - analogMin));
+  }
+  
+  return;
 }
 
 int MPU6050::Int16ToInt32(int int16)

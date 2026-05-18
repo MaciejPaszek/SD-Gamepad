@@ -14,95 +14,115 @@ void TaskReadGyro(void *)
 
   AnalogMessage analogMessage;
 
-  // Łańcuch znakó dla komunikatów o błędach
+  // Łańcuch znaków dla komunikatów o błędach
   char buffer[300];
 
   // Obiekt klasy MPU6050
-  MPU6050 mpu6050 = MPU6050();
+  MPU6050 mpu6050 = MPU6050(SDA, SCL, MPU6050_ADR);
 
-  // Otwieranie połączenia
-  error = mpu6050.begin(SDA, SCL, MPU6050_ADR);
+  // Ustawianie rejestrów zarządzania zasilaniem żyroskopu
+  error = mpu6050.begin();
   
   if(error != MPU6050_NO_ERROR)
   {
-    sprintf(buffer, "begin error: 0x%02x\n", error);
+    sprintf(buffer, "mpu6050.begin():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
     Serial.print(buffer);
   }
 
-  // Ustalanie zakresu żyroskopu
+  // Zakres pomiarowy żyroskopu
   // - MPU6050_RANGE_250_DEG_PER_SEC
   // - MPU6050_RANGE_500_DEG_PER_SEC
   // - MPU6050_RANGE_1000_DEG_PER_SEC
   // - MPU6050_RANGE_2000_DEG_PER_SEC
-  error = mpu6050.setRange(MPU6050_RANGE_2000_DEG_PER_SEC);
+  error = mpu6050.setRange(MPU6050_RANGE_250_DEG_PER_SEC);
 
   if(error != MPU6050_NO_ERROR)
   {
-    sprintf(buffer, "setRange error: 0x%02x\n", error);
+    sprintf(buffer, "mpu6050.setRange():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
     Serial.print(buffer);
   }
 
-  // Zmienne na orientację żyroskopu (całka z prędkości)
-  
-  // Pozycja początkowa
-  float X = 0.0;
-  float Y = 0.0;
-  float Z = 0.0;
-  
-  // Granica strefy nieczułości 5 stopni na sekundę
-  float eps = 5.0;
+  // Licznik do kalibracji
+  int i = 0;
 
   while(true)
   {
-    // Wykonaj pomiar z żyroskopu
-    mpu6050.measure();
+    // Pomiar prędkości z żyroskopu
+    error = mpu6050.measure();
 
-    // Całka z prędkości strefa nieczułości
-    if(mpu6050.vX < -eps || mpu6050.vX > eps)
+    if(error != MPU6050_NO_ERROR)
     {
-      X += mpu6050.vX * 0.1; // Uwzględniamy h = 100 ms
+      sprintf(buffer, "mpu6050.measure():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
+      Serial.print(buffer);
     }
-
-    if(mpu6050.vY < -eps || mpu6050.vY > eps)
+    else
     {
-      Y += mpu6050.vY * 0.1;
+      // Resetowanie żyroskopu, gdy pomiary są zerowe
+      if(mpu6050.gX == 0 && mpu6050.gY == 0 && mpu6050.gZ == 0)
+      {
+        // Ustawianie rejestrów zarządzania zasilaniem żyroskopu
+        error = mpu6050.begin();
+        
+        if(error != MPU6050_NO_ERROR)
+        {
+          sprintf(buffer, "mpu6050.begin():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
+          Serial.print(buffer);
+        }
+
+        // Zakres pomiarowy żyroskopu
+        // - MPU6050_RANGE_250_DEG_PER_SEC
+        // - MPU6050_RANGE_500_DEG_PER_SEC
+        // - MPU6050_RANGE_1000_DEG_PER_SEC
+        // - MPU6050_RANGE_2000_DEG_PER_SEC
+        error = mpu6050.setRange(MPU6050_RANGE_250_DEG_PER_SEC);
+
+        if(error != MPU6050_NO_ERROR)
+        {
+          sprintf(buffer, "mpu6050.setRange():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
+          Serial.print(buffer);
+        }
+      }
+
+      if(i < 100)
+      {
+        mpu6050.calibrate(i);
+        i++;
+      }
+
+      mpu6050.calculate(0.1);
+
+      // Wiadomość do kolejki o osi Y
+      analogMessage.analogID = 0;
+      analogMessage.analogVal = (int) ((mpu6050.posY - mpu6050.posMinY) / (mpu6050.posMaxY - mpu6050.posMinY) * 4095.0);
+
+      if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
+      {
+        Serial.println("xQueueGyro is full.");
+      }
+
+      // Wiadomość oś Z
+      analogMessage.analogID = 1;
+      analogMessage.analogVal = (int) ((mpu6050.posZ - mpu6050.posMinZ) / (mpu6050.posMaxZ - mpu6050.posMinZ) * 4095.0);
+
+      if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
+      {
+        Serial.println("xQueueGyro is full.");
+      }
+
+      // Wypisz
+      sprintf(buffer, "gX:%d; gY:%d; gZ:%d;\t", mpu6050.gX, mpu6050.gY, mpu6050.gZ);
+      Serial.print(buffer);
+
+      //sprintf(buffer, "gAvgX:%d; gAvgY:%d; gAvgZ:%d;\t", mpu6050.gX, mpu6050.gY, mpu6050.gZ);
+      //Serial.print(buffer);
+
+      //sprintf(buffer, "vX:%f; vY:%f; vZ:%f;\t", mpu6050.vX, mpu6050.vY, mpu6050.vZ);
+      //Serial.print(buffer);
+
+      sprintf(buffer, "posX:%f; posY:%f; posZ:%f\n", mpu6050.posX, mpu6050.posY, mpu6050.posZ);
+      Serial.print(buffer);
+
     }
-
-    if(mpu6050.vZ < -eps || mpu6050.vZ > eps)
-    {
-      Z += mpu6050.vZ * 0.1;
-    }
-
-    // Przygotuj komunikat do kolejki o zmianie odczytu analoga
-    //analogMessage.analogID = 0;
-    //analogMessage.analogVal = (int) X;
-
-    //if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
-    //{
-    //  Serial.println("QueueAnalog is full.");
-    //}
-
-    analogMessage.analogID = 0;
-    analogMessage.analogVal = 2048 + (int) (Y / 180.0 * 2048.0);
-
-    if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
-    {
-      Serial.println("xQueueGyro is full.");
-    }
-
-    analogMessage.analogID = 1;
-    analogMessage.analogVal = 2048 + (int) (Z / 180.0 * 2048.0);
-
-    if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
-    {
-      Serial.println("xQueueGyro is full.");
-    }
-
-    // Wypisz
-    sprintf(buffer, "gX:%d; gY:%d; gZ:%d;\t X:%f; Y:%f; Z:%f\n",
-            mpu6050.gX, mpu6050.gY, mpu6050.gZ, X, Y, Z);
-    Serial.print(buffer);
-
     // Opóźnienie 100 ms
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
