@@ -131,18 +131,48 @@ byte MPU6050::measure()
   error = Wire.endTransmission();
 
   // Przekonweryuj int16 na int32
-  gX = Int16ToInt32(gX);
-  gY = Int16ToInt32(gY);
-  gZ = Int16ToInt32(gZ);
+  gX = Int16ToInt32(gX) - gOffsetX;
+  gY = Int16ToInt32(gY) - gOffsetY;
+  gZ = Int16ToInt32(gZ) - gOffsetZ;
 
   return error;
 }
 
+void MPU6050::average()
+{
+  gPrevX[avgIndex] = gX;
+  gPrevY[avgIndex] = gY;
+  gPrevZ[avgIndex] = gZ;
+
+  avgIndex++;
+
+  if(avgIndex >= AVG_WINDOW_SIZE)
+  {
+    avgIndex = 0;
+  }
+
+  gAvgX = 0;
+  gAvgY = 0;
+  gAvgZ = 0;
+
+  for(int i = 0; i < AVG_WINDOW_SIZE; i++)
+  {
+    gAvgX += gPrevX[i];
+    gAvgY += gPrevY[i];
+    gAvgZ += gPrevZ[i];
+  }
+
+  gAvgX = gAvgX / AVG_WINDOW_SIZE;
+  gAvgY = gAvgY / AVG_WINDOW_SIZE;
+  gAvgZ = gAvgZ / AVG_WINDOW_SIZE;
+
+}
+
 void MPU6050::calibrate(int i)
 {
-  gAvgX = (gAvgX * i + gX) / (i + 1.0);
-  gAvgY = (gAvgY * i + gY) / (i + 1.0);
-  gAvgZ = (gAvgZ * i + gZ) / (i + 1.0);
+  gOffsetX = (gOffsetX * i + gX) / (i + 1.0);
+  gOffsetY = (gOffsetY * i + gY) / (i + 1.0);
+  gOffsetZ = (gOffsetZ * i + gZ) / (i + 1.0);
 
   return;
 }

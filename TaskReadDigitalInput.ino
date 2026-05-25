@@ -1,5 +1,15 @@
 signed char dpadTranslator(bool dpadUp, bool dpadDown, bool dpadLeft, bool dpadRight);
 
+void vCallbackFunctionGyroCalibration( TimerHandle_t xTimer )
+{
+  //Serial.println("Żądanie kalibracji żyroskopu.");
+}
+
+void vCallbackFunctionGyroZero( TimerHandle_t xTimer )
+{
+  //Serial.println("Żądanie zerowania żyroskopu.");
+}
+
 void TaskReadDigitalInput(void *)
 {
   bool buttonState[NO_BUTTONS] = {false};
@@ -13,6 +23,10 @@ void TaskReadDigitalInput(void *)
 
   static ButtonMessage buttonMessage;
   static DPADMessage dpadMessage;
+
+  // Timer
+  xTimerGyroCalibration = xTimerCreate("Timer Gyro Calibration", pdMS_TO_TICKS(3000), pdFALSE, ( void * ) 0, vCallbackFunctionGyroCalibration);
+  xTimerGyroZero        = xTimerCreate("Timer Gyro Zero",        pdMS_TO_TICKS(3000), pdFALSE, ( void * ) 0, vCallbackFunctionGyroZero);
 
   while(true)
   {
@@ -33,6 +47,38 @@ void TaskReadDigitalInput(void *)
           Serial.println("xQueueDigital is full.");
         }
 
+        // Przytrzymaj START przez 3 sekundy, aby skalibrować żyroskop
+        if(BUTTONS[i].pin == BUTTON_START)
+        {
+          if(buttonState[i] == true)
+          {
+            if( xTimerStart( xTimerGyroCalibration, 0 ) != pdPASS )
+            {
+              Serial.println("xTimerGyroCalibration cannot start.");
+            }
+          }
+          else
+          {
+            xTimerStop( xTimerGyroCalibration, 0 );
+          }
+        }
+
+        // Przytrzymaj SELECT przez 3 sekundy, aby wyzerować żyroskop
+        if(BUTTONS[i].pin == BUTTON_SELECT)
+        {
+          if(buttonState[i] == true)
+          {
+            if( xTimerStart( xTimerGyroZero, 0 ) != pdPASS )
+            {
+              Serial.println("xTimerGyroZero cannot start.");
+            }
+          }
+          else
+          {
+            xTimerStop( xTimerGyroZero, 0 );
+          }
+        }
+
         // Wypisz
         if(TEST_DIGITAL_INPUT)
         {
@@ -45,25 +91,6 @@ void TaskReadDigitalInput(void *)
           Serial.print(buttonState[i]);
           Serial.println();
         }
-
-        // Kalibracja
-        // Wciśnięty przycisk start i select
-        // if(buttonState[6] == true && buttonState[7] == true)
-        // {
-        //   if( xSemaphoreCalibration != NULL )
-        //   {
-        //     if( xSemaphoreTake( xSemaphoreCalibration, ( TickType_t ) 10 ) == pdTRUE )
-        //     {
-        //       globalCalibration = true;
-        //       xSemaphoreGive( xSemaphoreCalibration );
-        //     }
-        //     else
-        //     {
-        //       Serial.println("TaskReadDigital: xSemaphoreCalibration taken");
-        //     }
-        //   }
-        // }
-        
       }
 
       buttonPrevState[i] = buttonState[i];

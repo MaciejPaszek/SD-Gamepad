@@ -10,7 +10,7 @@ void TaskReadAnalogInput(void *)
     for(int i = 0; i < NO_ANALOGS; i++)
     {
       // Odczyt analoga i
-      analogVal[i] = analogRead(ANALOGS[i]);
+      analogVal[i] = analogRead(ANALOGS[i].pin);
 
       // Wykrywanie zmiany odczytu analoga
       if(analogVal[i] != analogPrevVal[i])
@@ -26,6 +26,19 @@ void TaskReadAnalogInput(void *)
       }
 
       analogPrevVal[i] = analogVal[i];
+
+      // Wypisz
+      if(TEST_ANALOG_INPUT)
+      {
+        for(int i = 0; i < NO_ANALOGS; i++)
+        {
+          Serial.print(ANALOGS[i].name);
+          Serial.print(":");
+          Serial.print(analogVal[i]);
+          Serial.print("\t");
+        }
+        Serial.println();
+      }
     }
     
     vTaskDelay(10 / portTICK_PERIOD_MS);

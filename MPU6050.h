@@ -39,6 +39,8 @@
 #define MPU6050_RANGE_1000_DEG_PER_SEC 2
 #define MPU6050_RANGE_2000_DEG_PER_SEC 3
 
+#define AVG_WINDOW_SIZE 10
+
 static const String ERROR_DESC[] = {
   "MPU6050_NO_ERROR",
   "MPU6050_ERROR_DATA_TOO_LONG",
@@ -60,6 +62,7 @@ class MPU6050
     byte measure();
     //byte zero();
     void calibrate(int i);
+    void average();
     void calculate(float h);
 
     // Odczyt żyroskopu na osi X w zakresie od -32768 do 32767
@@ -69,7 +72,17 @@ class MPU6050
     // Odczyt żyroskopu na osi Z w zakresie od -32768 do 32767
     int gZ;
 
+    int avgIndex = 0;
+    int gPrevX[AVG_WINDOW_SIZE] = {0};
+    int gPrevY[AVG_WINDOW_SIZE] = {0};
+    int gPrevZ[AVG_WINDOW_SIZE] = {0};
+
     // Odczyt średni do kalibracji
+    int gOffsetX = 26;
+    int gOffsetY = 59;
+    int gOffsetZ =  9;
+
+    // Odczyt średni na wyjście
     int gAvgX = 0.0;
     int gAvgY = 0.0;
     int gAvgZ = 0.0;

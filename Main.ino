@@ -10,7 +10,6 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Wejścia Cyfrowe
 //--------------------------------------------------
 
-// Zmienić liczbę wejść cyfrowych z 14 do 10
 #define NO_BUTTONS      10  // Liczba wejść cyfrowych
 
 #define BUTTON_A        25  // Przycisk A
@@ -25,10 +24,10 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 #define BUTTON_RS       27  // Przycisk gałki analogowej prawej
 
 //--------------------------------------------------
-// Wejścia Cyfrowe - Hatsune Switch (aka DPAD)
+// Przyciski kierunkowe
 //--------------------------------------------------
 
-#define NO_DPAD      4  // Liczba wejść cyfrowych
+#define NO_DPAD          4  // Liczba przyciskó kierunkowych
 
 #define BUTTON_DPAD_L   16  // Przycisk kierunkowy lewy
 #define BUTTON_DPAD_R    4  // Przycisk kierunkowy prawy
@@ -67,28 +66,37 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 
 // Kontroluj, które zadania należy utworzyć
 #define CREATE_TASK_BLUETOOTH             1
-#define CREATE_TASK_SERIAL                0
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
 #define CREATE_TASK_READ_ANALOG_INPUT     1
-#define CREATE_TASK_READ_GYRO             1
-#define CREATE_TASK_MOTOR                 0
+#define CREATE_TASK_READ_GYRO             0 // Żyroskop wyłączony (work in progress)
+#define CREATE_TASK_MOTOR                 0 // Silnik wyłączony (możliwe, że ostatecznie go nie będzie)
 
 // Priorytety zadań
 #define PRIORITY_TASK_BLUETOOTH           1
-#define PRIORITY_TASK_SERIAL              2
-#define PRIORITY_TASK_READ_DIGITAL_INPUT  3
-#define PRIORITY_TASK_READ_ANALOG_INPUT   4
-#define PRIORITY_TASK_READ_GYRO           5
-#define PRIORITY_TASK_MOTOR               6
+#define PRIORITY_TASK_READ_DIGITAL_INPUT  2
+#define PRIORITY_TASK_READ_ANALOG_INPUT   3
+#define PRIORITY_TASK_READ_GYRO           4
+#define PRIORITY_TASK_MOTOR               5
 
-//
-#define TEST_DIGITAL_INPUT 1
+//--------------------------------------------------
+// Diagnostyka
+//--------------------------------------------------
 
+// Testy najlepiej uruchamiać pojedynczo
+
+// Wypisuj każdy wciśnięty lub zwolniony przycisk
+// (Tools > Serial Monitor)
+#define TEST_DIGITAL_INPUT                1
+
+// Test gałek analogowych
+// (Tools > Serial Plotter) 
+#define TEST_ANALOG_INPUT                 0
 
 //--------------------------------------------------
 // Stałe statyczne
 //--------------------------------------------------
 
+// Struktura porządkująca wejścia
 typedef struct
 {
      uint8_t id;
@@ -96,6 +104,7 @@ typedef struct
      String name;
 }input;
 
+// Statyczna tablica przycisków standardowych
 static const input BUTTONS[] = {
   { 1, BUTTON_A,      "A"},
   { 2, BUTTON_B,      "B"},
@@ -106,30 +115,36 @@ static const input BUTTONS[] = {
   {11, BUTTON_SELECT, "SELECT"},
   {12, BUTTON_START,  "START"},
   {14, BUTTON_LS,     "LS"},
-  {15, BUTTON_RS,     "RS"},
+  {15, BUTTON_RS,     "RS"}
 };
 
+// Statyczna tablica przycisków kierunkowych
 static const input DPAD[] = {
-  { 0, BUTTON_DPAD_U, "BUTTON_DPAD_U"},
-  { 1, BUTTON_DPAD_R, "BUTTON_DPAD_R"},
-  { 2, BUTTON_DPAD_D, "BUTTON_DPAD_D"},
-  { 3, BUTTON_DPAD_L, "BUTTON_DPAD_L"},
+  { 0, BUTTON_DPAD_U, "DPAD_U"},
+  { 1, BUTTON_DPAD_R, "DPAD_R"},
+  { 2, BUTTON_DPAD_D, "DPAD_D"},
+  { 3, BUTTON_DPAD_L, "DPAD_L"}
 };
 
-// Statyczna tablica pinów analogowych
-static const int ANALOGS[] = {
-  ANALOG_LX,
-  ANALOG_LY,
-  ANALOG_RX,
-  ANALOG_RY,
-  ANALOG_LT,
-  ANALOG_RT};
+// Statyczna tablica osi analogowych
+static const input ANALOGS[] = {
+  { 0, ANALOG_LX, "ANALOG_LX"},
+  { 1, ANALOG_LY, "ANALOG_LY"},
+  { 2, ANALOG_RX, "ANALOG_RX"},
+  { 3, ANALOG_RY, "ANALOG_RY"},
+  { 4, ANALOG_LT, "ANALOG_LT"},
+  { 5, ANALOG_RT, "ANALOG_RT"}
+};
 
 //--------------------------------------------------
-// Semafory
+// Semafory i zmienne globalne
 //--------------------------------------------------
 
-SemaphoreHandle_t xSemaphore;
+SemaphoreHandle_t xSemaphoreGyroCalibration;
+bool gGyroCalibration = false;
+
+SemaphoreHandle_t xSemaphoreGyroZero;
+bool gGyroZero = false;
 
 //--------------------------------------------------
 // Kolejki
@@ -147,24 +162,34 @@ QueueHandle_t xQueueAnalog;
 static const uint8_t QueueGyroLen = 30;
 QueueHandle_t xQueueGyro;
 
-bool globalCalibration = false;
-SemaphoreHandle_t xSemaphoreCalibration;
+//--------------------------------------------------
+// Timery
+//--------------------------------------------------
+
+// Timer polecenia kalibracji
+TimerHandle_t xTimerGyroCalibration;
+
+// Timer polecenia zerowania
+TimerHandle_t xTimerGyroZero;
 
 //--------------------------------------------------
 // Struktury
 //--------------------------------------------------
 
+// Struktura wiadomości kolejki xQueueDigital
 typedef struct 
 {
     int buttonID;
     bool buttonState;
 }ButtonMessage;
 
+// Struktura wiadomości kolejki xQueueDPAD
 typedef struct 
 {
     signed char dpadState;
 }DPADMessage;
 
+// Struktura wiadomości kolejki QueueAnalogLen i QueueGyroLen
 typedef struct 
 {
     int analogID;
@@ -192,8 +217,6 @@ void setup()
   bleGamepadConfig.setHatSwitchCount(1);
   //bleGamepadConfig.setVid(0xe502);
   //bleGamepadConfig.setPid(0xabcd);
-  // Some non-Windows operating systems and web based gamepad testers don't like min axis set below 0, so 0 is set by default
-  //bleGamepadConfig.setAxesMin(0x8001); // -32767 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal
   bleGamepadConfig.setAxesMin(0); // 0 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal
   bleGamepadConfig.setAxesMax(4095); // 32767 --> int16_t - 16 bit signed integer - Can be in decimal or hexadecimal 
 
@@ -222,7 +245,7 @@ void setup()
   // Tryb wejść analogowych
   for(int i = 0; i < NO_ANALOGS; i++)
   {
-    pinMode(ANALOGS[i], INPUT);
+    pinMode(ANALOGS[i].pin, INPUT);
   }
 
   // Silnik
@@ -259,35 +282,30 @@ void setup()
     Serial.println("xQueueGyro could not be created with xQueueCreate");
   }
 
-  xSemaphoreCalibration = xSemaphoreCreateBinary();
+  xSemaphoreGyroCalibration = xSemaphoreCreateBinary();
 
-  if( xSemaphoreCalibration == NULL )
+  if( xSemaphoreGyroCalibration == NULL )
   {
-    Serial.println("xSemaphoreCalibration could not be created with xSemaphoreCreateBinary");
+    Serial.println("xSemaphoreGyroCalibration could not be created with xSemaphoreCreateBinary");
   }
 
-  // Zadanie 1 - Transmisja szeregowa
-  if(CREATE_TASK_SERIAL)
+  xSemaphoreGyroZero = xSemaphoreCreateBinary();
+
+  if( xSemaphoreGyroZero == NULL )
   {
-    xTaskCreate(
-      TaskSerial,             // Funkcja realizowana przez zadanie
-      "Task Serial",          // Nazwa zadania
-      4096,                   // Rozmiar stosu zadania
-      NULL,                   // Parametry funkcji
-      PRIORITY_TASK_SERIAL,   // Priorytet zadania
-      NULL);                  // Uchwyt do zadania
+    Serial.println("xSemaphoreGyroZero could not be created with xSemaphoreCreateBinary");
   }
 
-  // Zadanie 1 - Transmisja szeregowa
+  // Zadanie 1 - Transmisja bluetooth
   if(CREATE_TASK_BLUETOOTH)
   {
     xTaskCreate(
       TaskBluetooth,             // Funkcja realizowana przez zadanie
       "Task Bluetooth",          // Nazwa zadania
-      4096,                   // Rozmiar stosu zadania
-      NULL,                   // Parametry funkcji
+      4096,                      // Rozmiar stosu zadania
+      NULL,                      // Parametry funkcji
       PRIORITY_TASK_BLUETOOTH,   // Priorytet zadania
-      NULL);                  // Uchwyt do zadania
+      NULL);                     // Uchwyt do zadania
   }
 
   // Zadanie 2 - Odczyt wejść cyfrowych
@@ -317,12 +335,12 @@ void setup()
   if(CREATE_TASK_READ_GYRO)
   {
     xTaskCreate(
-      TaskReadGyro,             // Funkcja realizowana przez zadanie
+      TaskReadGyro,              // Funkcja realizowana przez zadanie
       "Task Read Gyro",          // Nazwa zadania
-      4096,                   // Rozmiar stosu zadania
-      NULL,                   // Parametry funkcji
+      4096,                      // Rozmiar stosu zadania
+      NULL,                      // Parametry funkcji
       PRIORITY_TASK_READ_GYRO,   // Priorytet zadania
-      NULL);                  // Uchwyt do zadania
+      NULL);                     // Uchwyt do zadania
   }
 
   if(CREATE_TASK_MOTOR)

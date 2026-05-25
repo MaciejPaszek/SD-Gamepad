@@ -34,7 +34,7 @@ void TaskReadGyro(void *)
   // - MPU6050_RANGE_500_DEG_PER_SEC
   // - MPU6050_RANGE_1000_DEG_PER_SEC
   // - MPU6050_RANGE_2000_DEG_PER_SEC
-  error = mpu6050.setRange(MPU6050_RANGE_250_DEG_PER_SEC);
+  error = mpu6050.setRange(MPU6050_RANGE_1000_DEG_PER_SEC);
 
   if(error != MPU6050_NO_ERROR)
   {
@@ -74,7 +74,7 @@ void TaskReadGyro(void *)
         // - MPU6050_RANGE_500_DEG_PER_SEC
         // - MPU6050_RANGE_1000_DEG_PER_SEC
         // - MPU6050_RANGE_2000_DEG_PER_SEC
-        error = mpu6050.setRange(MPU6050_RANGE_250_DEG_PER_SEC);
+        error = mpu6050.setRange(MPU6050_RANGE_1000_DEG_PER_SEC);
 
         if(error != MPU6050_NO_ERROR)
         {
@@ -83,11 +83,13 @@ void TaskReadGyro(void *)
         }
       }
 
-      if(i < 100)
-      {
-        mpu6050.calibrate(i);
-        i++;
-      }
+      //if(i < 10000)
+      //{
+        //mpu6050.calibrate(i);
+        //i++;
+      //}
+
+      mpu6050.average();
 
       mpu6050.calculate(0.1);
 
@@ -110,18 +112,12 @@ void TaskReadGyro(void *)
       }
 
       // Wypisz
-      sprintf(buffer, "gX:%d; gY:%d; gZ:%d;\t", mpu6050.gX, mpu6050.gY, mpu6050.gZ);
-      Serial.print(buffer);
-
-      //sprintf(buffer, "gAvgX:%d; gAvgY:%d; gAvgZ:%d;\t", mpu6050.gX, mpu6050.gY, mpu6050.gZ);
+      //sprintf(buffer, "gX:%d; gOffsetX:%d; gAvgX:%d; posX:%f\n", mpu6050.gX, mpu6050.gOffsetX, mpu6050.gAvgX, mpu6050.posX);
       //Serial.print(buffer);
 
-      //sprintf(buffer, "vX:%f; vY:%f; vZ:%f;\t", mpu6050.vX, mpu6050.vY, mpu6050.vZ);
+      //sprintf(buffer, "gX:%d; gY:%d; gZ:%d; gAvgX:%d; gAvgY:%d; gAvgZ:%d\n",
+      //        mpu6050.gX, mpu6050.gY,  mpu6050.gZ, mpu6050.gAvgX, mpu6050.gAvgY, mpu6050.gAvgZ);
       //Serial.print(buffer);
-
-      sprintf(buffer, "posX:%f; posY:%f; posZ:%f\n", mpu6050.posX, mpu6050.posY, mpu6050.posZ);
-      Serial.print(buffer);
-
     }
     // Opóźnienie 100 ms
     vTaskDelay(100 / portTICK_PERIOD_MS);
