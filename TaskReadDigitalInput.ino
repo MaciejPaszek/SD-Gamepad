@@ -1,26 +1,68 @@
 signed char dpadTranslator(bool dpadUp, bool dpadDown, bool dpadLeft, bool dpadRight);
 
+static bool startButtonState = false;
+static bool selectButtonState = false;
+
 void vCallbackFunctionGyroCalibration( TimerHandle_t xTimer )
 {
-  Serial.println("Żądanie kalibracji żyroskopu.");
+  static ButtonMessage buttonMessage;
 
-  static int RequestMessage = MPU6050_CALIBRATION_REQUEST;
-
-  if(xQueueSend( xQueueGyroConfig, ( void * ) &RequestMessage, 10 ) != pdTRUE)
+  if( startButtonState == true)
   {
-      Serial.println("xQueueGyroConfig is full.");
+    Serial.println("START - Long Press");
+
+    // Przygotuj komunikat do kolejki o zmianie stanu przycisku
+    buttonMessage.buttonID = 12; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
+    buttonMessage.buttonState = true;
+
+    if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
+    {
+      Serial.println("xQueueDigital is full.");
+    }
   }
+  else
+  {
+    Serial.println("START - Short Press");
+    
+    static int RequestMessage = MPU6050_CALIBRATION_REQUEST;
+
+    if(xQueueSend( xQueueGyroConfig, ( void * ) &RequestMessage, 10 ) != pdTRUE)
+    {
+      Serial.println("xQueueGyroConfig is full.");
+    }
+  }
+
+  return;
+  // 
 }
 
 void vCallbackFunctionGyroZero( TimerHandle_t xTimer )
 {
-  Serial.println("Żądanie zerowania żyroskopu.");
-
-  static int RequestMessage = MPU6050_ZERO_REQUEST;
-
-  if(xQueueSend( xQueueGyroConfig, ( void * ) &RequestMessage, 10 ) != pdTRUE)
+  static ButtonMessage buttonMessage;
+  
+  if( selectButtonState == true)
   {
-      Serial.println("xQueueGyroConfig is full.");
+    Serial.println("SELECT - Long Press");
+
+    // Przygotuj komunikat do kolejki o zmianie stanu przycisku
+    buttonMessage.buttonID = 11; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
+    buttonMessage.buttonState = true;
+
+    if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
+    {
+      Serial.println("xQueueDigital is full.");
+    }
+  }
+  else
+  {
+    Serial.println("SELECT - Short Press");
+    
+    static int RequestMessage = MPU6050_ZERO_REQUEST;
+
+    if(xQueueSend( xQueueGyroConfig, ( void * ) &RequestMessage, 10 ) != pdTRUE)
+    {
+        Serial.println("xQueueGyroConfig is full.");
+    }
   }
 }
 
@@ -39,8 +81,8 @@ void TaskReadDigitalInput(void *)
   static DPADMessage dpadMessage;
 
   // Timer
-  xTimerGyroCalibration = xTimerCreate("Timer Gyro Calibration", pdMS_TO_TICKS(3000), pdFALSE, ( void * ) 0, vCallbackFunctionGyroCalibration);
-  xTimerGyroZero        = xTimerCreate("Timer Gyro Zero",        pdMS_TO_TICKS(3000), pdFALSE, ( void * ) 0, vCallbackFunctionGyroZero);
+  xTimerGyroCalibration = xTimerCreate("Timer Gyro Calibration", pdMS_TO_TICKS(200), pdFALSE, ( void * ) 0, vCallbackFunctionGyroCalibration);
+  xTimerGyroZero        = xTimerCreate("Timer Gyro Zero",        pdMS_TO_TICKS(200), pdFALSE, ( void * ) 0, vCallbackFunctionGyroZero);
 
   while(true)
   {
@@ -52,44 +94,70 @@ void TaskReadDigitalInput(void *)
       // Wykrywanie zmiany stanu przycisku i
       if(buttonState[i] != buttonPrevState[i])
       {
-        // Przygotuj komunikat do kolejki o zmianie stanu przycisku
-        buttonMessage.buttonID = BUTTONS[i].id; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
-        buttonMessage.buttonState = buttonState[i];
-
-        if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
+        if(BUTTONS[i].pin != BUTTON_START && BUTTONS[i].pin != BUTTON_SELECT)
         {
-          Serial.println("xQueueDigital is full.");
-        }
 
-        // Przytrzymaj START przez 3 sekundy, aby skalibrować żyroskop
-        if(BUTTONS[i].pin == BUTTON_START)
-        {
-          if(buttonState[i] == true)
+          // Przygotuj komunikat do kolejki o zmianie stanu przycisku
+          buttonMessage.buttonID = BUTTONS[i].id; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
+          buttonMessage.buttonState = buttonState[i];
+
+          if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
           {
-            if( xTimerStart( xTimerGyroCalibration, 0 ) != pdPASS )
+            Serial.println("xQueueDigital is full.");
+          }
+
+        }
+        else // Specjalne traktowanie przycisków START i SELECT
+        {
+          // Przytrzymaj START przez 3 sekundy, aby skalibrować żyroskop
+          if(BUTTONS[i].pin == BUTTON_START)
+          {
+            startButtonState = buttonState[i];
+
+            // Uruchom timer przy narastającym zboczu
+            if(buttonState[i] == true)
             {
-              Serial.println("xTimerGyroCalibration cannot start.");
+              if( xTimerStart( xTimerGyroCalibration, 0 ) != pdPASS )
+              {
+                Serial.println("xTimerGyroCalibration cannot start.");
+              }
+            }
+            else
+            {
+              // Przygotuj komunikat do kolejki o zmianie stanu przycisku
+              buttonMessage.buttonID = BUTTONS[i].id; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
+              buttonMessage.buttonState = buttonState[i];
+
+              if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
+              {
+                Serial.println("xQueueDigital is full.");
+              }
             }
           }
-          else
-          {
-            xTimerStop( xTimerGyroCalibration, 0 );
-          }
-        }
 
-        // Przytrzymaj SELECT przez 3 sekundy, aby wyzerować żyroskop
-        if(BUTTONS[i].pin == BUTTON_SELECT)
-        {
-          if(buttonState[i] == true)
+          // Przytrzymaj SELECT przez 3 sekundy, aby wyzerować żyroskop
+          if(BUTTONS[i].pin == BUTTON_SELECT)
           {
-            if( xTimerStart( xTimerGyroZero, 0 ) != pdPASS )
+            selectButtonState = buttonState[i];
+
+            if(buttonState[i] == true)
             {
-              Serial.println("xTimerGyroZero cannot start.");
+              if( xTimerStart( xTimerGyroZero, 0 ) != pdPASS )
+              {
+                Serial.println("xTimerGyroZero cannot start.");
+              }
             }
-          }
-          else
-          {
-            xTimerStop( xTimerGyroZero, 0 );
+            else
+            {
+              // Przygotuj komunikat do kolejki o zmianie stanu przycisku
+              buttonMessage.buttonID = BUTTONS[i].id; // Numer przycisku jest liczony od 1, tabela jest liczona od 0
+              buttonMessage.buttonState = buttonState[i];
+
+              if(xQueueSend( xQueueDigital, ( void * ) &buttonMessage, 10 ) != pdTRUE)
+              {
+                Serial.println("xQueueDigital is full.");
+              }
+            }
           }
         }
 

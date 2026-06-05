@@ -39,8 +39,7 @@
 #define MPU6050_RANGE_1000_DEG_PER_SEC 2
 #define MPU6050_RANGE_2000_DEG_PER_SEC 3
 
-
-
+#define CALIBRATION_WINDOW_SIZE 100
 #define AVG_WINDOW_SIZE 10
 
 static int RANGE[] = {
@@ -76,7 +75,8 @@ class MPU6050
 
     // Obliczenia
     void offset();
-    void calibrate(int i);
+    void calibrate();
+    void calibrationRequest();
     void average();
     void integrate(int h);
     void analog();
@@ -89,11 +89,13 @@ class MPU6050
     // Offset odczytów z żyroskopu
     int gOffset[3] = { -86 ,   6  ,  15};
 
+    // Offset odczytów z żyroskopu
+    int gCalibration[3][CALIBRATION_WINDOW_SIZE] = {0};
+
     // Odczyty z żyroskopu przesunięte o offset, w zakresie od -32768 - off do 32767 - off
     int gVal[3] = {0};
 
     // Okno przesuwne
-
     int gPrev[3][AVG_WINDOW_SIZE] = {0};
 
     // Wartości z żyroskopu filtrowane oknem przesuwnym, w zakresie od -32768 - off do 32767 - off
@@ -120,11 +122,14 @@ class MPU6050
 
     // Pozycja żyroskopu skalowana do osi analogowej
     int posAnalog[3] = {0};
+    int _calibrationPrevResults[3] = {0};
+    bool _calibration[3] = {false};
 
   private:
 
     // Indeks okna przesuwnego
     int _avgIndex = 0;
+    int _calibrationIndex = 0;
     int _adr;
     int _range;
     int Int16ToInt32(int int16);

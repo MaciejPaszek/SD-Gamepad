@@ -53,8 +53,8 @@ void TaskReadGyro(void *)
       {
         if(RequestMessage == MPU6050_CALIBRATION_REQUEST)
         {
-          //mpu6050.zero();
-          //Serial.println("Wyzerowano");
+          mpu6050.calibrationRequest();
+          Serial.println("Rozpoczynam kalibrację...");
         }
 
         if(RequestMessage == MPU6050_ZERO_REQUEST)
@@ -101,6 +101,7 @@ void TaskReadGyro(void *)
         }
       }
 
+      mpu6050.calibrate();
       mpu6050.offset();
       mpu6050.average();
       mpu6050.integrate(10);
@@ -131,10 +132,10 @@ void TaskReadGyro(void *)
        Serial.println("xQueueGyro is full.");
       }
 
-      // Wypisz
-      // sprintf(buffer, "gRawY:%d; gValY:%d; gAvgY:%d; posY:%d; posAnalogY:%d\n",
+      // // Wypisz
+      // sprintf(buffer, "gRawY:%d; gValY:%d; gAvgY:%d; gCal:%d\n",
       //   mpu6050.gRaw[1], mpu6050.gVal[1], mpu6050.gAvg[1], 
-      //   mpu6050.pos[1], mpu6050.posAnalog[1]);
+      //   mpu6050._calibrationPrevResults[1]);
       // Serial.print(buffer);
 
       //sprintf(buffer, "gX:%d; gY:%d; gZ:%d; gAvgX:%d; gAvgY:%d; gAvgZ:%d\n",
