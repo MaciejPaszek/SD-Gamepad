@@ -39,7 +39,16 @@
 #define MPU6050_RANGE_1000_DEG_PER_SEC 2
 #define MPU6050_RANGE_2000_DEG_PER_SEC 3
 
+
+
 #define AVG_WINDOW_SIZE 10
+
+static int RANGE[] = {
+   250,
+   500,
+  1000,
+  2000,
+};
 
 static const String ERROR_DESC[] = {
   "MPU6050_NO_ERROR",
@@ -55,85 +64,72 @@ static const String ERROR_DESC[] = {
 class MPU6050
 {
   public:
+    // Konstruktor
     MPU6050(uint8_t sda, uint8_t scl, int adr);
     byte begin();
     byte reset();
     byte setRange(byte range);
     byte measure();
-    //byte zero();
+
+    // Zerowanie
+    void zero();
+
+    // Obliczenia
+    void offset();
     void calibrate(int i);
     void average();
-    void calculate(float h);
+    void integrate(int h);
+    void analog();
 
-    // Odczyt żyroskopu na osi X w zakresie od -32768 do 32767
-    int gX;
-    // Odczyt żyroskopu na osi Y w zakresie od -32768 do 32767
-    int gY;
-    // Odczyt żyroskopu na osi Z w zakresie od -32768 do 32767
-    int gZ;
+    void csvLog();
 
-    int avgIndex = 0;
-    int gPrevX[AVG_WINDOW_SIZE] = {0};
-    int gPrevY[AVG_WINDOW_SIZE] = {0};
-    int gPrevZ[AVG_WINDOW_SIZE] = {0};
+    // Surowe odczyty z żyroskopu w zakresie od -32768 do 32767
+    int gRaw[3] = {0};
 
-    // Odczyt średni do kalibracji
-    int gOffsetX = 26;
-    int gOffsetY = 59;
-    int gOffsetZ =  9;
+    // Offset odczytów z żyroskopu
+    int gOffset[3] = { -86 ,   6  ,  15};
 
-    // Odczyt średni na wyjście
-    int gAvgX = 0.0;
-    int gAvgY = 0.0;
-    int gAvgZ = 0.0;
+    // Odczyty z żyroskopu przesunięte o offset, w zakresie od -32768 - off do 32767 - off
+    int gVal[3] = {0};
 
-    // Odczyt żyroskopu na osi X w stopniach na sekundę
-    float vX;
-    // Odczyt żyroskopu na osi Y w stopniach na sekundę
-    float vY;
-    // Odczyt żyroskopu na osi Z w stopniach na sekundę
-    float vZ;
+    // Okno przesuwne
 
-    // Strefa nieczułości [-eps, eps] w stopniach
-    float eps = 5.0;
+    int gPrev[3][AVG_WINDOW_SIZE] = {0};
 
-    // Pozycja żyroskopu na osi X w stopniach
-    float posX = 0.0;
-    // Pozycja żyroskopu na osi Y w stopniach
-    float posY = 0.0;
-    // Pozycja żyroskopu na osi Z w stopniach
-    float posZ = 0.0;
+    // Wartości z żyroskopu filtrowane oknem przesuwnym, w zakresie od -32768 - off do 32767 - off
+    int gAvg[3] = {0};
 
-    // Minimalna pozycja żyroskopu na osi X w stopniach
-    float posMinX = -90.0;
-    // Pozycja żyroskopu na osi Y w stopniach
-    float posMinY = -90.0;
-    // Pozycja żyroskopu na osi Z w stopniach
-    float posMinZ = -90.0;
+    // Okres pomiarów w milisekundach
+    // int h = 100;
 
-    // Pozycja żyroskopu na osi X w stopniach
-    float posMaxX =  90.0;
-    // Pozycja żyroskopu na osi Y w stopniach
-    float posMaxY =  90.0;
-    // Pozycja żyroskopu na osi Z w stopniach
-    float posMaxZ =  90.0;
+    // Strefa nieczułości [-eps, eps]
+    int eps = 5;
 
-    // Zakres slidera
+    // Pozycja żyroskopu w milistopniach
+    int pos[3] = {0};
+
+    // Ograniczenia pozycji żyroskopu w milistopniach
+    int posMin[3] = {-90000};
+
+    // Ograniczenia pozycji żyroskopu w milistopniach
+    int posMax[3] = { 90000};
+
+    // Zakres osi analogowej
     int analogMin =    0;
     int analogMax = 4095;
 
-    // Pozycja żyroskopu na osi X w zakresie od 0 do 4095
-    int analogX = 0;
-    // Pozycja żyroskopu na osi Y w zakresie od 0 do 4095
-    int analogY = 0;
-    // Pozycja żyroskopu na osi Z w zakresie od 0 do 4095
-    int analogZ = 0;
-
+    // Pozycja żyroskopu skalowana do osi analogowej
+    int posAnalog[3] = {0};
 
   private:
+
+    // Indeks okna przesuwnego
+    int _avgIndex = 0;
     int _adr;
-    float _range = 250.0;
+    int _range;
     int Int16ToInt32(int int16);
+    int _csvLineNumber = 0;
+    char buffer[255] = {' '};
 };
 
 #endif

@@ -4,9 +4,6 @@
 // Adres 
 #define MPU6050_ADR 0x68
 
-#define PWR_MGMT_1 0x6b
-#define GYRO_XOUT_H 0x43
-
 void TaskReadGyro(void *)
 {
   // Kod błędu
@@ -34,7 +31,7 @@ void TaskReadGyro(void *)
   // - MPU6050_RANGE_500_DEG_PER_SEC
   // - MPU6050_RANGE_1000_DEG_PER_SEC
   // - MPU6050_RANGE_2000_DEG_PER_SEC
-  error = mpu6050.setRange(MPU6050_RANGE_1000_DEG_PER_SEC);
+  error = mpu6050.setRange(MPU6050_RANGE_2000_DEG_PER_SEC);
 
   if(error != MPU6050_NO_ERROR)
   {
@@ -45,8 +42,29 @@ void TaskReadGyro(void *)
   // Licznik do kalibracji
   int i = 0;
 
+  static int RequestMessage = 0;
+
   while(true)
   {
+    // Odczytaj kolejkę
+    if( xQueueGyroConfig != NULL )
+    {
+      while( xQueueReceive( xQueueGyroConfig, (void *)&RequestMessage, 0 ) == pdPASS )
+      {
+        if(RequestMessage == MPU6050_CALIBRATION_REQUEST)
+        {
+          //mpu6050.zero();
+          //Serial.println("Wyzerowano");
+        }
+
+        if(RequestMessage == MPU6050_ZERO_REQUEST)
+        {
+          mpu6050.zero();
+          Serial.println("Wyzerowano");
+        }
+      }
+    }
+
     // Pomiar prędkości z żyroskopu
     error = mpu6050.measure();
 
@@ -58,7 +76,7 @@ void TaskReadGyro(void *)
     else
     {
       // Resetowanie żyroskopu, gdy pomiary są zerowe
-      if(mpu6050.gX == 0 && mpu6050.gY == 0 && mpu6050.gZ == 0)
+      if(mpu6050.gRaw[0] == 0 && mpu6050.gRaw[1] == 0 && mpu6050.gRaw[2] == 0)
       {
         // Ustawianie rejestrów zarządzania zasilaniem żyroskopu
         error = mpu6050.begin();
@@ -74,7 +92,7 @@ void TaskReadGyro(void *)
         // - MPU6050_RANGE_500_DEG_PER_SEC
         // - MPU6050_RANGE_1000_DEG_PER_SEC
         // - MPU6050_RANGE_2000_DEG_PER_SEC
-        error = mpu6050.setRange(MPU6050_RANGE_1000_DEG_PER_SEC);
+        error = mpu6050.setRange(MPU6050_RANGE_2000_DEG_PER_SEC);
 
         if(error != MPU6050_NO_ERROR)
         {
@@ -83,43 +101,47 @@ void TaskReadGyro(void *)
         }
       }
 
+      mpu6050.offset();
+      mpu6050.average();
+      mpu6050.integrate(10);
+      mpu6050.analog();
+      //mpu6050.csvLog();
+
       //if(i < 10000)
       //{
         //mpu6050.calibrate(i);
         //i++;
       //}
 
-      mpu6050.average();
-
-      mpu6050.calculate(0.1);
-
-      // Wiadomość do kolejki o osi Y
+      //Wiadomość do kolejki o osi Y
       analogMessage.analogID = 0;
-      analogMessage.analogVal = (int) ((mpu6050.posY - mpu6050.posMinY) / (mpu6050.posMaxY - mpu6050.posMinY) * 4095.0);
+      analogMessage.analogVal = mpu6050.posAnalog[1];
 
       if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
       {
         Serial.println("xQueueGyro is full.");
       }
 
-      // Wiadomość oś Z
+      //Wiadomość oś Z
       analogMessage.analogID = 1;
-      analogMessage.analogVal = (int) ((mpu6050.posZ - mpu6050.posMinZ) / (mpu6050.posMaxZ - mpu6050.posMinZ) * 4095.0);
+      analogMessage.analogVal = mpu6050.posAnalog[2];
 
       if(xQueueSend( xQueueGyro, ( void * ) &analogMessage, 10 ) != pdTRUE)
       {
-        Serial.println("xQueueGyro is full.");
+       Serial.println("xQueueGyro is full.");
       }
 
       // Wypisz
-      //sprintf(buffer, "gX:%d; gOffsetX:%d; gAvgX:%d; posX:%f\n", mpu6050.gX, mpu6050.gOffsetX, mpu6050.gAvgX, mpu6050.posX);
-      //Serial.print(buffer);
+      // sprintf(buffer, "gRawY:%d; gValY:%d; gAvgY:%d; posY:%d; posAnalogY:%d\n",
+      //   mpu6050.gRaw[1], mpu6050.gVal[1], mpu6050.gAvg[1], 
+      //   mpu6050.pos[1], mpu6050.posAnalog[1]);
+      // Serial.print(buffer);
 
       //sprintf(buffer, "gX:%d; gY:%d; gZ:%d; gAvgX:%d; gAvgY:%d; gAvgZ:%d\n",
       //        mpu6050.gX, mpu6050.gY,  mpu6050.gZ, mpu6050.gAvgX, mpu6050.gAvgY, mpu6050.gAvgZ);
       //Serial.print(buffer);
     }
-    // Opóźnienie 100 ms
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    // Opóźnienie 10 ms
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }

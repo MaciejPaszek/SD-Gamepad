@@ -7,7 +7,7 @@ MPU6050::MPU6050(uint8_t sda, uint8_t scl, int adr)
   // Adres I2C
   _adr = adr;
 
-  // Roczpocznij I2C na określonych pinach
+  // Roczpocznij komunikację I2C na określonych pinach
   Wire.begin(sda, scl);
 }
 
@@ -41,28 +41,24 @@ byte MPU6050::setRange(byte range)
   // Kod błędu
   byte error;
 
-  // Bajt rejestr
+  // Bajt wpisywany do rejestru GYRO_CONFIG
   byte gyroConfig;
 
   switch(range)
   {
     case MPU6050_RANGE_250_DEG_PER_SEC:
-      _range = 250.0;
       gyroConfig = 0b00000000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 00; 000;
       break;
     
     case MPU6050_RANGE_500_DEG_PER_SEC:
-      _range = 500.0;
       gyroConfig = 0b00001000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 01; 000;
       break;
 
     case MPU6050_RANGE_1000_DEG_PER_SEC:
-      _range = 1000.0;
       gyroConfig = 0b00010000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 10; 000;
       break;
 
     case MPU6050_RANGE_2000_DEG_PER_SEC:
-      _range = 2000.0;
       gyroConfig = 0b00011000; // XG_ST = 0; YG_ST = 0; ZG_ST = 0; FS_SEL = 11; 000;
       break;
 
@@ -74,6 +70,12 @@ byte MPU6050::setRange(byte range)
   Wire.write(GYRO_CONFIG);
   Wire.write(gyroConfig);
   error = Wire.endTransmission();
+  
+  // Jeśli sukces, to zapisz nowy stan
+  if(error == MPU6050_NO_ERROR)
+  {
+    _range = range;
+  }
 
   return error;
 }
@@ -112,118 +114,166 @@ byte MPU6050::measure()
   // Sprawdź, czy do odczytu jest co najmniej 6 bajtów
   if(Wire.available() < 6)
   {
-    //gX = 0.0;
-    //gY = 0.0;
-    //gZ = 0.0;
-
-    //posX = 0.0;
-    //posY = 0.0;
-    //posZ = 0.0;
-
     return MPU6050_ERROR_AVAILABLE;
   }
 
   // Odczytaj 6 bajtów danych
-  gX = Wire.read() << 8 | Wire.read(); 
-  gY = Wire.read() << 8 | Wire.read();
-  gZ = Wire.read() << 8 | Wire.read();
+  gRaw[0] = Wire.read() << 8 | Wire.read(); 
+  gRaw[1] = Wire.read() << 8 | Wire.read();
+  gRaw[2] = Wire.read() << 8 | Wire.read();
 
   error = Wire.endTransmission();
 
   // Przekonweryuj int16 na int32
-  gX = Int16ToInt32(gX) - gOffsetX;
-  gY = Int16ToInt32(gY) - gOffsetY;
-  gZ = Int16ToInt32(gZ) - gOffsetZ;
+  for(int i = 0; i < 3; i++)
+  {
+    gRaw[i] = Int16ToInt32(gRaw[i]);
+  }
 
   return error;
 }
 
+void MPU6050::zero()
+{
+  for(int i = 0; i < 3; i++)
+  {
+    pos[i] = 0;
+    posAnalog[i] = 0;
+  }
+}
+
+void MPU6050::offset()
+{
+  for(int i = 0; i < 3; i++)
+  {
+    gVal[i] = gRaw[i] - gOffset[i];
+  }
+
+  return;
+}
+
 void MPU6050::average()
 {
-  gPrevX[avgIndex] = gX;
-  gPrevY[avgIndex] = gY;
-  gPrevZ[avgIndex] = gZ;
-
-  avgIndex++;
-
-  if(avgIndex >= AVG_WINDOW_SIZE)
+  // Wpisz odczytaną wartość do tablicy
+  for(int i = 0; i < 3; i++)
   {
-    avgIndex = 0;
+    gPrev[i][_avgIndex] = gVal[i];
   }
 
-  gAvgX = 0;
-  gAvgY = 0;
-  gAvgZ = 0;
+  // Przesuń indeks zapisu do tablicy
+  _avgIndex++;
 
-  for(int i = 0; i < AVG_WINDOW_SIZE; i++)
+  // Jeśli indeks zapisu do tablicy wykroczył poza tablicę, wróć na początek
+  if(_avgIndex >= AVG_WINDOW_SIZE)
   {
-    gAvgX += gPrevX[i];
-    gAvgY += gPrevY[i];
-    gAvgZ += gPrevZ[i];
+    _avgIndex = 0;
   }
 
-  gAvgX = gAvgX / AVG_WINDOW_SIZE;
-  gAvgY = gAvgY / AVG_WINDOW_SIZE;
-  gAvgZ = gAvgZ / AVG_WINDOW_SIZE;
+  // Wyzeruj poprzednie wartości średnie
+  for(int i = 0; i < 3; i++)
+  {
+    gAvg[i] = 0;
+  }
 
-}
+  // Zsumuj wszystkie wartości w oknie przesuwnym
+  for(int j = 0; j < AVG_WINDOW_SIZE; j++)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      gAvg[i] += gPrev[i][j];
+    }
+  }
 
-void MPU6050::calibrate(int i)
-{
-  gOffsetX = (gOffsetX * i + gX) / (i + 1.0);
-  gOffsetY = (gOffsetY * i + gY) / (i + 1.0);
-  gOffsetZ = (gOffsetZ * i + gZ) / (i + 1.0);
+  // Podziel sumę wartości przez rozmiar okna przesuwnego
+  for(int i = 0; i < 3; i++)
+  {
+    gAvg[i] = gAvg[i] / AVG_WINDOW_SIZE;
+  }
 
   return;
 }
 
-void MPU6050::calculate(float h)
-{
-  // Oblicz prędkości w stopniach na sekundę
-  vX = (gX - gAvgX) * _range / 32767.0;
-  vY = (gY - gAvgY) * _range / 32767.0;
-  vZ = (gZ - gAvgZ) * _range / 32767.0;
+// void MPU6050::calibrate(int i)
+// {
+//   gOffsetX = (gOffsetX * i + gX) / (i + 1.0);
+//   gOffsetY = (gOffsetY * i + gY) / (i + 1.0);
+//   gOffsetZ = (gOffsetZ * i + gZ) / (i + 1.0);
 
-  if(vX < -eps || vX > eps)
+//   return;
+// }
+
+void MPU6050::integrate(int h)
+{
+  // Całkowanie
+  for(int i = 0; i < 3; i++)
   {
-    // Wykonaj krok na osi X
-    posX = posX + vX * h;
+    // Całkowanie Stopni na milisekundę daje milistopnie
+    pos[i] = pos[i] + gVal[i] * RANGE[_range] * h / 32768;
+  }
+
+  return;
+}
+
+void MPU6050::analog()
+{
+  for(int i = 0; i < 3; i++)
+  {
+    posAnalog[i] = analogMin + (analogMax - analogMin) * (pos[i] + 90000) / (180000);
+
+    // // Ograniczenie dolne
+    if(posAnalog[i] > analogMax)
+    {
+      posAnalog[i] = analogMax;
+    }
+
+    // Ograniczenie górne
+    if(posAnalog[i] < analogMin)
+    {
+      posAnalog[i] = analogMin;
+    }
+  }
+
+  return;
+}
+  // // Oblicz prędkości w stopniach na sekundę
+  // vX = (gX - gAvgX) * _range / 32767.0;
+  // vY = (gY - gAvgY) * _range / 32767.0;
+  // vZ = (gZ - gAvgZ) * _range / 32767.0;
+
+  // if(vX < -eps || vX > eps)
+  // {
+  //   // Wykonaj krok na osi X
+  //   posX = posX + vX * h;
     
-    // Ograniczenie na oś
-    if(posX < posMinX) { posX = posMinX; }
-    if(posX > posMaxX) { posX = posMaxX; }
+  //   // Ograniczenie na oś
+  //   if(posX < posMinX) { posX = posMinX; }
+  //   if(posX > posMaxX) { posX = posMaxX; }
 
-    // Przelicz na slider
-    analogX = analogMin + (int) ((posX - posMinX) / (posMaxX - posMinX) * (analogMax - analogMin));
-  }
-
-  if(vY < -eps || vY > eps)
-  {
-    // Wykonaj krok na osi Y
-    posY = posY + vY * h;
+  //   // Przelicz na slider
+  //   analogX = analogMin + (int) ((posX - posMinX) / (posMaxX - posMinX) * (analogMax - analogMin));
+  // }
   
-    // Ograniczenie na oś Y
-    if(posY < posMinY) { posY = posMinY; }
-    if(posY > posMaxY) { posY = posMaxY; }
 
-    // Przelicz na slider
-    analogY = analogMin + (int) ((posY - posMinY) / (posMaxY - posMinY) * (analogMax - analogMin));
-  }
 
-  if(vZ < -eps || vZ > eps)
+void MPU6050::csvLog()
+{
+  // Nagłówek pliku CSV
+  if(_csvLineNumber == 0)
   {
-    // Wykonaj krok na osi Z
-    posZ = posZ + vZ * h; 
-
-    // Ograniczenie na oś Z
-    if(posZ < posMinZ) { posZ = posMinZ; }
-    if(posZ > posMaxZ) { posZ = posMaxZ; }
-
-    // Przelicz na slider
-    analogZ = analogMin + (int) ((posZ - posMinZ) / (posMaxZ - posMinZ) * (analogMax - analogMin));
+    sprintf(buffer, "t; gX; gY; gZ; pX; pY; pZ");
+    Serial.println(buffer);
   }
-  
-  return;
+
+  if(_csvLineNumber <= 10 * 100)
+  {
+    // Linia pliku CSV
+    sprintf(buffer, "%d; %d; %d; %d", _csvLineNumber,
+    gVal[0], gVal[1], gVal[2], pos[0], pos[1], pos[2]);
+    Serial.println(buffer);
+
+    // Inkrementacja numeru linii
+    _csvLineNumber++;
+  }
 }
 
 int MPU6050::Int16ToInt32(int int16)

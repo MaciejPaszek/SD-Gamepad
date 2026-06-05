@@ -67,8 +67,8 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Kontroluj, które zadania należy utworzyć
 #define CREATE_TASK_BLUETOOTH             1
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
-#define CREATE_TASK_READ_ANALOG_INPUT     1
-#define CREATE_TASK_READ_GYRO             0 // Żyroskop wyłączony (work in progress)
+#define CREATE_TASK_READ_ANALOG_INPUT     0
+#define CREATE_TASK_READ_GYRO             1 // Żyroskop wyłączony (work in progress)
 #define CREATE_TASK_MOTOR                 0 // Silnik wyłączony (możliwe, że ostatecznie go nie będzie)
 
 // Priorytety zadań
@@ -91,6 +91,10 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Test gałek analogowych
 // (Tools > Serial Plotter) 
 #define TEST_ANALOG_INPUT                 0
+
+
+#define MPU6050_CALIBRATION_REQUEST 0
+#define MPU6050_ZERO_REQUEST        1
 
 //--------------------------------------------------
 // Stałe statyczne
@@ -140,11 +144,6 @@ static const input ANALOGS[] = {
 // Semafory i zmienne globalne
 //--------------------------------------------------
 
-SemaphoreHandle_t xSemaphoreGyroCalibration;
-bool gGyroCalibration = false;
-
-SemaphoreHandle_t xSemaphoreGyroZero;
-bool gGyroZero = false;
 
 //--------------------------------------------------
 // Kolejki
@@ -161,6 +160,9 @@ QueueHandle_t xQueueAnalog;
 
 static const uint8_t QueueGyroLen = 30;
 QueueHandle_t xQueueGyro;
+
+static const uint8_t xQueueGyroConfigLen = 30;
+QueueHandle_t xQueueGyroConfig;
 
 //--------------------------------------------------
 // Timery
@@ -282,18 +284,11 @@ void setup()
     Serial.println("xQueueGyro could not be created with xQueueCreate");
   }
 
-  xSemaphoreGyroCalibration = xSemaphoreCreateBinary();
+  xQueueGyroConfig = xQueueCreate( xQueueGyroConfigLen, sizeof(int) );
 
-  if( xSemaphoreGyroCalibration == NULL )
+  if( xQueueGyroConfig == NULL )
   {
-    Serial.println("xSemaphoreGyroCalibration could not be created with xSemaphoreCreateBinary");
-  }
-
-  xSemaphoreGyroZero = xSemaphoreCreateBinary();
-
-  if( xSemaphoreGyroZero == NULL )
-  {
-    Serial.println("xSemaphoreGyroZero could not be created with xSemaphoreCreateBinary");
+    Serial.println("xQueueGyroConfig could not be created with xQueueCreate");
   }
 
   // Zadanie 1 - Transmisja bluetooth

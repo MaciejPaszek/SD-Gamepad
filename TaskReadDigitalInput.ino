@@ -2,12 +2,26 @@ signed char dpadTranslator(bool dpadUp, bool dpadDown, bool dpadLeft, bool dpadR
 
 void vCallbackFunctionGyroCalibration( TimerHandle_t xTimer )
 {
-  //Serial.println("Żądanie kalibracji żyroskopu.");
+  Serial.println("Żądanie kalibracji żyroskopu.");
+
+  static int RequestMessage = MPU6050_CALIBRATION_REQUEST;
+
+  if(xQueueSend( xQueueGyroConfig, ( void * ) &RequestMessage, 10 ) != pdTRUE)
+  {
+      Serial.println("xQueueGyroConfig is full.");
+  }
 }
 
 void vCallbackFunctionGyroZero( TimerHandle_t xTimer )
 {
-  //Serial.println("Żądanie zerowania żyroskopu.");
+  Serial.println("Żądanie zerowania żyroskopu.");
+
+  static int RequestMessage = MPU6050_ZERO_REQUEST;
+
+  if(xQueueSend( xQueueGyroConfig, ( void * ) &RequestMessage, 10 ) != pdTRUE)
+  {
+      Serial.println("xQueueGyroConfig is full.");
+  }
 }
 
 void TaskReadDigitalInput(void *)
