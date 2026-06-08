@@ -87,7 +87,7 @@ class MPU6050
     int gRaw[3] = {0};
 
     // Offset odczytów z żyroskopu
-    int gOffset[3] = { -86 ,   6  ,  15};
+    int gOffset[3] = {0};
 
     // Offset odczytów z żyroskopu
     int gCalibration[3][CALIBRATION_WINDOW_SIZE] = {0};
@@ -123,7 +123,7 @@ class MPU6050
     // Pozycja żyroskopu skalowana do osi analogowej
     int posAnalog[3] = {0};
     int _calibrationPrevResults[3] = {0};
-    bool _calibration[3] = {false};
+    bool _calibration[3] = {true};
 
   private:
 
