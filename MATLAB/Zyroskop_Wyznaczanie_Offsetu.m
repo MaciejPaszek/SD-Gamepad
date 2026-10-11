@@ -49,6 +49,7 @@ function [gAvg] = Zyroskop_Wyznaczanie_Offsetu(t, gVal, filename)
             gMaxLabel, ...
             gAvgLabel, ...
             gMinLabel);
-
     end
+
+    exportgraphics(gcf, filename);
 end

@@ -70,8 +70,8 @@ void TaskReadGyro(void *)
 
     if(error != MPU6050_NO_ERROR)
     {
-      sprintf(buffer, "mpu6050.measure():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
-      Serial.print(buffer);
+      //sprintf(buffer, "mpu6050.measure():\t%s (0x%02x)\n", ERROR_DESC[error].c_str(), error);
+      //Serial.print(buffer);
     }
     else
     {

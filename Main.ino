@@ -67,7 +67,7 @@ BleGamepad bleGamepad("SD Gamepad", "Paszek i Suwart", 100);
 // Kontroluj, które zadania należy utworzyć
 #define CREATE_TASK_BLUETOOTH             1
 #define CREATE_TASK_READ_DIGITAL_INPUT    1
-#define CREATE_TASK_READ_ANALOG_INPUT     0
+#define CREATE_TASK_READ_ANALOG_INPUT     1
 #define CREATE_TASK_READ_GYRO             1 // Żyroskop wyłączony (work in progress)
 #define CREATE_TASK_MOTOR                 0 // Silnik wyłączony (możliwe, że ostatecznie go nie będzie)
 
